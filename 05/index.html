@@ -1,0 +1,466 @@
+  <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工业电机健康状态监测大屏</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #111827;
+      color: white;
+      padding: 2rem;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .title { font-size: 2.5rem; font-weight: bold; color: #06B6D4; }
+    .warning {
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid #EF4444;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+    .warning.show { display: flex; }
+    .warning-text { color: #EF4444; font-weight: 600; }
+    .export-btn {
+      background: #1F2937;
+      border: 1px solid rgba(6, 182, 212, 0.5);
+      color: #06B6D4;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .export-btn:hover { background: #374151; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-bottom: 2rem; }
+    .card {
+      background: #1F2937;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+    .card-title { font-size: 1.5rem; color: #06B6D4; margin-bottom: 1rem; }
+    .gauge-container { display: flex; flex-direction: column; align-items: center; }
+    .rpm-value { font-size: 4rem; font-weight: bold; color: #06B6D4; margin-top: 1rem; }
+    .rpm-label { color: #9CA3AF; font-size: 1.25rem; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: #1F2937; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.5rem; padding: 1rem; }
+    .stat-label { color: #9CA3AF; font-size: 0.875rem; }
+    .stat-value { font-size: 2rem; font-weight: bold; color: #06B6D4; }
+    .stat-value.warning { color: #EF4444; }
+    .stat-value.normal { color: #10B981; }
+    .log-panel {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+    .log-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .log-dots { display: flex; gap: 0.375rem; }
+    .log-dot { width: 0.75rem; height: 0.75rem; border-radius: 50%; }
+    .log-title { color: #06B6D4; font-size: 0.875rem; font-family: monospace; }
+    .log-content {
+      background: rgba(3, 7, 18, 0.5);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      height: 12rem;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+    .log-entry { display: flex; gap: 0.75rem; margin-bottom: 0.25rem; }
+    .log-time { color: #6B7280; }
+    .log-level { font-weight: 600; }
+    .log-level.INFO { color: #06B6D4; }
+    .log-level.WARN { color: #FBBF24; }
+    .log-message { color: #D1D5DB; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .temp-display { text-align: center; margin-top: 1rem; }
+    .temp-label { color: #9CA3AF; }
+    .temp-value { font-size: 2rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">工业电机健康状态监测大屏</h1>
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <button class="export-btn" onclick="exportCSV()">📥 导出历史运行数据 (CSV)</button>
+        <div class="warning" id="warning">
+          <span style="font-size: 1.5rem;">⚠️</span>
+          <span class="warning-text">温度超限警告</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2 class="card-title">实时转速</h2>
+        <div class="gauge-container">
+          <canvas id="gaugeCanvas" width="400" height="250"></canvas>
+          <div class="rpm-value" id="rpmValue">1550</div>
+          <div class="rpm-label">RPM</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">轴承温度趋势</h2>
+        <canvas id="tempCanvas" width="600" height="300"></canvas>
+        <div class="temp-display">
+          <span class="temp-label">当前温度: </span>
+          <span class="temp-value" id="tempValue" style="color: #06B6D4;">50.0°C</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">当前转速</div>
+        <div class="stat-value" id="statRpm">1550 RPM</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">当前温度</div>
+        <div class="stat-value normal" id="statTemp">50.0°C</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">运行状态</div>
+        <div class="stat-value normal" id="statStatus">正常</div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-header">
+        <div class="log-dots">
+          <div class="log-dot" style="background: #EF4444;"></div>
+          <div class="log-dot" style="background: #FBBF24;"></div>
+          <div class="log-dot" style="background: #10B981;"></div>
+        </div>
+        <span class="log-title">系统运行日志</span>
+      </div>
+      <div class="log-content" id="logContent">
+        <div style="color: #6B7280;">等待日志输出...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 高斯噪声生成器
+    function gaussianNoise(mean = 0, stdDev = 1) {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      return z0 * stdDev + mean;
+    }
+
+    // 全局变量
+    let rpm = 1550;
+    let currentTemp = 50;
+    let temperatureData = [];
+    let allHistoryData = [];
+    let logs = [];
+    let time = 0;
+    let temperature = 50;
+    let targetTemp = 50;
+    const K = 0.08;
+    const baseRpm = 1550;
+    const amplitude = 15;
+    const omega = 0.05;
+
+    // 初始化温度数据
+    let initTemp = 50;
+    let initTarget = 50;
+    for (let i = 0; i < 60; i++) {
+      initTarget = Math.min(85, initTarget + 0.3);
+      initTemp = initTemp + K * (initTarget - initTemp) + gaussianNoise(0, 0.5);
+      temperatureData.push({ time: i, temp: initTemp });
+    }
+    temperature = initTemp;
+    targetTemp = initTarget;
+
+    // 日志函数
+    function addLog(level, message) {
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString('zh-CN', { hour12: false });
+      logs.push({ timestamp, level, message });
+      if (logs.length > 50) logs.shift();
+
+      const logContent = document.getElementById('logContent');
+      logContent.innerHTML = logs.map(log => `
+        <div class="log-entry">
+          <span class="log-time">[${log.timestamp}]</span>
+          <span class="log-level ${log.level}">[${log.level}]</span>
+          <span class="log-message">${log.message}</span>
+        </div>
+      `).join('');
+      logContent.scrollTop = logContent.scrollHeight;
+    }
+
+    // CSV 导出
+    function exportCSV() {
+      const headers = ['时间戳', '转速(RPM)', '温度(°C)', '状态'];
+      const rows = allHistoryData.map(item => [
+        new Date(item.timestamp).toLocaleString('zh-CN'),
+        item.rpm,
+        item.temp.toFixed(2),
+        item.temp > 80 ? '预警' : '正常'
+      ]);
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `工业电机监测数据_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      addLog('INFO', `数据导出成功，共 ${rows.length} 条记录`);
+    }
+
+    // 绘制转速仪表盘
+    function drawGauge() {
+      const canvas = document.getElementById('gaugeCanvas');
+      const ctx = canvas.getContext('2d');
+      const centerX = 200;
+      const centerY = 150;
+      const radius = 120;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制外圈
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+      ctx.lineWidth = 8;
+      ctx.stroke();
+
+      // 绘制刻度
+      for (let i = 0; i <= 10; i++) {
+        const angle = Math.PI + (i / 10) * Math.PI;
+        const x1 = centerX + Math.cos(angle) * (radius - 10);
+        const y1 = centerY + Math.sin(angle) * (radius - 10);
+        const x2 = centerX + Math.cos(angle) * (radius - 25);
+        const y2 = centerY + Math.sin(angle) * (radius - 25);
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = '#06B6D4';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // 刻度值
+        const value = 1500 + i * 10;
+        const tx = centerX + Math.cos(angle) * (radius - 45);
+        const ty = centerY + Math.sin(angle) * (radius - 45);
+        ctx.fillStyle = '#06B6D4';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(value, tx, ty + 5);
+      }
+
+      // 绘制指针
+      const percentage = (rpm - 1500) / 100;
+      const angle = Math.PI + percentage * Math.PI;
+      const needleLength = radius - 30;
+      const needleX = centerX + Math.cos(angle) * needleLength;
+      const needleY = centerY + Math.sin(angle) * needleLength;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(needleX, needleY);
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // 中心点
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+      ctx.fillStyle = '#06B6D4';
+      ctx.fill();
+    }
+
+    // 绘制温度图表
+    function drawTempChart() {
+      const canvas = document.getElementById('tempCanvas');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = { top: 20, right: 40, bottom: 40, left: 50 };
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+      const minTemp = 45;
+      const maxTemp = 95;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // 绘制网格
+      ctx.strokeStyle = '#374151';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padding.top + (i * chartHeight) / 4;
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+
+        // Y轴标签
+        const temp = maxTemp - (i * (maxTemp - minTemp)) / 4;
+        ctx.fillStyle = '#9CA3AF';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(temp.toFixed(0) + '°C', padding.left - 10, y + 5);
+      }
+      ctx.setLineDash([]);
+
+      // 警戒线
+      const warningY = padding.top + chartHeight - ((80 - minTemp) / (maxTemp - minTemp)) * chartHeight;
+      ctx.strokeStyle = '#EF4444';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(padding.left, warningY);
+      ctx.lineTo(width - padding.right, warningY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#EF4444';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('80°C', width - padding.right + 5, warningY - 5);
+
+      // 绘制温度曲线（带渐变填充）
+      const points = temperatureData.map((d, i) => {
+        const x = padding.left + (i / (temperatureData.length - 1)) * chartWidth;
+        const y = padding.top + chartHeight - ((d.temp - minTemp) / (maxTemp - minTemp)) * chartHeight;
+        return { x, y };
+      });
+
+      // 填充区域
+      const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+      gradient.addColorStop(0, 'rgba(6, 182, 212, 0.8)');
+      gradient.addColorStop(1, 'rgba(6, 182, 212, 0.1)');
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.lineTo(points[points.length - 1].x, padding.top + chartHeight);
+      ctx.lineTo(padding.left, padding.top + chartHeight);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // 绘制曲线
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.strokeStyle = '#06B6D4';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // 坐标轴标签
+      ctx.fillStyle = '#9CA3AF';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('时间 (秒)', width / 2, height - 5);
+      ctx.save();
+      ctx.translate(15, height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('温度 (°C)', 0, 0);
+      ctx.restore();
+    }
+
+    // 更新显示
+    function updateDisplay() {
+      document.getElementById('rpmValue').textContent = rpm;
+      document.getElementById('statRpm').textContent = rpm + ' RPM';
+
+      const tempColor = currentTemp > 80 ? '#EF4444' : '#06B6D4';
+      const tempClass = currentTemp > 80 ? 'warning' : 'normal';
+      document.getElementById('tempValue').style.color = tempColor;
+      document.getElementById('tempValue').textContent = currentTemp.toFixed(1) + '°C';
+      document.getElementById('statTemp').className = 'stat-value ' + tempClass;
+      document.getElementById('statTemp').textContent = currentTemp.toFixed(1) + '°C';
+      document.getElementById('statStatus').className = 'stat-value ' + tempClass;
+      document.getElementById('statStatus').textContent = currentTemp > 80 ? '预警' : '正常';
+
+      const warning = document.getElementById('warning');
+      if (currentTemp > 80) {
+        warning.classList.add('show');
+      } else {
+        warning.classList.remove('show');
+      }
+    }
+
+    // 初始化
+    addLog('INFO', '系统初始化完成，开始实时监测');
+    addLog('INFO', `初始温度: ${temperature.toFixed(1)}°C, 转速: ${baseRpm} RPM`);
+    drawGauge();
+    drawTempChart();
+    updateDisplay();
+
+    // 主循环
+    let lastLogTemp = temperature;
+    let dataCounter = 0;
+
+    setInterval(() => {
+      time += 1;
+
+      // 温度模拟
+      if (targetTemp < 85) {
+        targetTemp = Math.min(85, targetTemp + 0.25 + gaussianNoise(0, 0.1));
+      } else {
+        targetTemp = 85 + gaussianNoise(0, 1.5);
+      }
+      temperature = temperature + K * (targetTemp - temperature) + gaussianNoise(0, 0.5);
+      currentTemp = Math.max(45, Math.min(95, temperature));
+
+      // 转速模拟
+      const lowFreqNoise = amplitude * Math.sin(omega * time);
+      const highFreqNoise = gaussianNoise(0, 2);
+      rpm = Math.floor(baseRpm + lowFreqNoise + highFreqNoise);
+      rpm = Math.max(1520, Math.min(1580, rpm));
+
+      // 更新数据
+      temperatureData.shift();
+      temperatureData.push({ time: temperatureData[temperatureData.length - 1].time + 1, temp: currentTemp });
+      allHistoryData.push({ timestamp: Date.now(), rpm, temp: currentTemp });
+
+      // 日志
+      if (Math.abs(currentTemp - lastLogTemp) >= 3) {
+        addLog('INFO', `温度变化: ${lastLogTemp.toFixed(1)}°C → ${currentTemp.toFixed(1)}°C`);
+        lastLogTemp = currentTemp;
+      }
+
+      const wasWarning = document.getElementById('warning').classList.contains('show');
+      const isWarning = currentTemp > 80;
+
+      if (isWarning && !wasWarning) {
+        addLog('WARN', `⚠️ 轴承温度异常，当前值: ${currentTemp.toFixed(1)}°C`);
+      } else if (!isWarning && wasWarning) {
+        addLog('INFO', `✓ 温度恢复正常: ${currentTemp.toFixed(1)}°C`);
+      } else if (isWarning && dataCounter % 10 === 0) {
+        addLog('WARN', `持续高温警告: ${currentTemp.toFixed(1)}°C`);
+      }
+
+      if (dataCounter % 30 === 0) {
+        addLog('INFO', `运行状态正常 | 转速: ${rpm} RPM | 温度: ${currentTemp.toFixed(1)}°C`);
+      }
+
+      dataCounter++;
+
+      // 重绘
+      drawGauge();
+      drawTempChart();
+      updateDisplay();
+    }, 1000);
+  </script>
+</body>
+</html>
