@@ -3,10 +3,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
 import matplotlib
+from matplotlib import font_manager
 
-# 设置中文字体支持
-matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
-matplotlib.rcParams['axes.unicode_minus'] = False
+# 设置中文字体支持，避免 Streamlit Cloud / Linux 环境中中文显示为方框
+def configure_chinese_font():
+    preferred_fonts = [
+        'Noto Sans CJK SC',
+        'Noto Sans CJK JP',
+        'Source Han Sans SC',
+        'Microsoft YaHei',
+        'SimHei',
+        'PingFang SC',
+        'WenQuanYi Micro Hei',
+        'Arial Unicode MS',
+    ]
+    available_fonts = {font.name for font in font_manager.fontManager.ttflist}
+    installed_fonts = [font for font in preferred_fonts if font in available_fonts]
+
+    font_stack = installed_fonts or preferred_fonts
+    matplotlib.rcParams['font.family'] = 'sans-serif'
+    matplotlib.rcParams['font.sans-serif'] = font_stack + ['DejaVu Sans']
+    matplotlib.rcParams['axes.unicode_minus'] = False
+
+
+configure_chinese_font()
 
 # 页面配置
 st.set_page_config(
