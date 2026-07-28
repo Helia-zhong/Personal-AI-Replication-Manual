@@ -11,12 +11,6 @@
 | PID Auto Tuning Dashboard | 线控转向 PID 参数调节、智能寻优与响应曲线对比 | [PID-Auto-Tuning-Dashboard/index.html](PID-Auto-Tuning-Dashboard/index.html) |
 | Auto Parking Trajectory Simulator | 五次多项式自动泊车轨迹规划与前端可视化 | [Auto-Parking-Trajectory-Simulator/index.html](Auto-Parking-Trajectory-Simulator/index.html) |
 
-## 招聘视角评估
-
-已补充一份面向求职作品集的评估与后续作品建议：
-
-[Recruiter-Portfolio-Review.md](Recruiter-Portfolio-Review.md)
-
 ## 快速运行
 
 四个重点项目都是单文件浏览器版，不需要安装依赖或启动服务。
@@ -53,7 +47,6 @@
 ├── 05/
 ├── LICENSE
 ├── packages.txt
-├── Recruiter-Portfolio-Review.md
 └── README.md
 ```
 
@@ -62,7 +55,7 @@
 - 当前重点浏览器项目均为前端演示，用于展示产品交互、算法流程和可视化能力，不包含后端服务。
 - AgentFlow Visualizer 使用 Mermaid CDN 渲染流程图，打开时需要网络访问 CDN。
 - AutoVision Copilot 会在本地浏览器中读取用户上传的图片或视频首帧，演示问答结果为预设模拟响应。
-- PID Auto Tuning Dashboard 和 Auto Parking Trajectory Simulator 是浏览器端近似仿真，用于作品集展示与面试讲解。
+- PID Auto Tuning Dashboard 和 Auto Parking Trajectory Simulator 是浏览器端近似仿真，用于项目演示与技术说明。
 
 ## License
 
