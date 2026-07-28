@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto Parking Trajectory Simulator</title>
+  <style>
+    :root {
+      --bg: #f6f7f4;
+      --ink: #202817;
+      --muted: #6b7164;
+      --panel: #ffffff;
+      --line: #d9dfd2;
+      --road: #dfe5dc;
+      --bay: #fff4d8;
+      --green: #147d64;
+      --blue: #2f6fc7;
+      --amber: #c9861a;
+      --red: #cf3f45;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      background: #263522;
+      color: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #25341f;
+    }
+
+    .field {
+      margin-bottom: 13px;
+    }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    label strong {
+      color: var(--ink);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+    }
+
+    button {
+      width: 100%;
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 650;
+      margin-top: 6px;
+    }
+
+    button:hover {
+      filter: brightness(0.98);
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      border-top: 3px solid var(--line);
+      padding: 10px 4px 4px;
+      min-height: 68px;
+    }
+
+    .metric.green { border-color: var(--green); }
+    .metric.blue { border-color: var(--blue); }
+    .metric.amber { border-color: var(--amber); }
+    .metric.red { border-color: var(--red); }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 750;
+    }
+
+    canvas {
+      width: 100%;
+      height: 430px;
+      display: block;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0 0 10px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 22px;
+      height: 3px;
+      border-radius: 999px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .shell { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      canvas { height: 360px; }
+    }
+
+    @media (max-width: 560px) {
+      h1 { font-size: 23px; }
+      header { padding: 18px; }
+      .control-grid, .metrics { grid-template-columns: 1fr; }
+      canvas { height: 310px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>自动泊车轨迹规划仿真</h1>
+      <p class="subtitle">基于五次多项式平滑插值生成泊车路径，在浏览器中展示车位、起终点姿态、轨迹曲率和可解释的规划指标。</p>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">泊车参数</h2>
+        <div class="control-grid">
+          <div class="field">
+            <label for="startX">起点 X <strong><span id="startXVal">0.0</span> m</strong></label>
+            <input id="startX" type="range" min="-3" max="3" value="0" step="0.1">
+          </div>
+          <div class="field">
+            <label for="startY">起点 Y <strong><span id="startYVal">0.0</span> m</strong></label>
+            <input id="startY" type="range" min="-2" max="3" value="0" step="0.1">
+          </div>
+          <div class="field">
+            <label for="endX">终点 X <strong><span id="endXVal">7.2</span> m</strong></label>
+            <input id="endX" type="range" min="4" max="10" value="7.2" step="0.1">
+          </div>
+          <div class="field">
+            <label for="endY">终点 Y <strong><span id="endYVal">2.2</span> m</strong></label>
+            <input id="endY" type="range" min="-1" max="4" value="2.2" step="0.1">
+          </div>
+          <div class="field">
+            <label for="startYaw">起点航向 <strong><span id="startYawVal">0</span> deg</strong></label>
+            <input id="startYaw" type="range" min="-35" max="35" value="0" step="1">
+          </div>
+          <div class="field">
+            <label for="endYaw">终点航向 <strong><span id="endYawVal">90</span> deg</strong></label>
+            <input id="endYaw" type="range" min="40" max="120" value="90" step="1">
+          </div>
+        </div>
+        <div class="field">
+          <label for="slotWidth">车位宽度 <strong><span id="slotWidthVal">2.6</span> m</strong></label>
+          <input id="slotWidth" type="range" min="2.2" max="3.4" value="2.6" step="0.1">
+        </div>
+        <button id="generateBtn" type="button">生成轨迹</button>
+        <p class="note">页面用于作品集展示路径规划思路。真实车辆系统还需要加入车辆运动学约束、障碍物检测和闭环控制。</p>
+      </aside>
+
+      <section class="panel">
+        <h2 class="panel-title">规划结果</h2>
+        <div class="metrics">
+          <div class="metric green"><span>轨迹长度</span><strong id="pathLength">-</strong></div>
+          <div class="metric blue"><span>最大曲率</span><strong id="maxCurvature">-</strong></div>
+          <div class="metric amber"><span>航向变化</span><strong id="yawDelta">-</strong></div>
+          <div class="metric red"><span>车位余量</span><strong id="clearance">-</strong></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--green)"></i>规划轨迹</span>
+          <span><i style="background:var(--amber)"></i>停车位</span>
+          <span><i style="background:var(--blue)"></i>车辆姿态</span>
+        </div>
+        <canvas id="parkingCanvas" aria-label="自动泊车轨迹可视化"></canvas>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const ids = ['startX', 'startY', 'endX', 'endY', 'startYaw', 'endYaw', 'slotWidth'];
+    const input = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+    const label = Object.fromEntries(ids.map(id => [id, document.getElementById(`${id}Val`)]));
+    const metrics = {
+      pathLength: document.getElementById('pathLength'),
+      maxCurvature: document.getElementById('maxCurvature'),
+      yawDelta: document.getElementById('yawDelta'),
+      clearance: document.getElementById('clearance')
+    };
+    const canvas = document.getElementById('parkingCanvas');
+
+    function smoothstep5(s) {
+      return 10 * s ** 3 - 15 * s ** 4 + 6 * s ** 5;
+    }
+
+    function getParams() {
+      return {
+        startX: Number(input.startX.value),
+        startY: Number(input.startY.value),
+        endX: Number(input.endX.value),
+        endY: Number(input.endY.value),
+        startYaw: Number(input.startYaw.value) * Math.PI / 180,
+        endYaw: Number(input.endYaw.value) * Math.PI / 180,
+        slotWidth: Number(input.slotWidth.value)
+      };
+    }
+
+    function makePath(p) {
+      const dx = p.endX - p.startX;
+      const dy = p.endY - p.startY;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+      const bow = Math.min(1.2, p.slotWidth * 0.34) * Math.sign(dy || 1);
+      const points = [];
+
+      for (let i = 0; i <= 120; i += 1) {
+        const s = i / 120;
+        const h = smoothstep5(s);
+        const side = Math.sin(Math.PI * s) * bow;
+        const x = p.startX + dx * h + nx * side;
+        const y = p.startY + dy * h + ny * side;
+        const yaw = p.startYaw + (p.endYaw - p.startYaw) * h;
+        points.push({ x, y, yaw, s });
+      }
+
+      return points;
+    }
+
+    function pathStats(points, p) {
+      let length = 0;
+      let maxK = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        length += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+      }
+      for (let i = 1; i < points.length - 1; i += 1) {
+        const a = points[i - 1];
+        const b = points[i];
+        const c = points[i + 1];
+        const ab = Math.hypot(b.x - a.x, b.y - a.y);
+        const bc = Math.hypot(c.x - b.x, c.y - b.y);
+        const ac = Math.hypot(c.x - a.x, c.y - a.y);
+        const area = Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) / 2;
+        if (ab * bc * ac > 0) {
+          maxK = Math.max(maxK, (4 * area) / (ab * bc * ac));
+        }
+      }
+      return {
+        length,
+        maxK,
+        yawDelta: Math.abs((p.endYaw - p.startYaw) * 180 / Math.PI),
+        clearance: Math.max(0, p.slotWidth - 1.86)
+      };
+    }
+
+    function setupCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function drawCar(ctx, toCanvas, car, color) {
+      const center = toCanvas(car.x, car.y);
+      const scalePoint = toCanvas(car.x + 1, car.y);
+      const scale = Math.abs(scalePoint.x - center.x);
+      const w = 1.86 * scale;
+      const h = 4.35 * scale;
+
+      ctx.save();
+      ctx.translate(center.x, center.y);
+      ctx.rotate(-car.yaw + Math.PI / 2);
+      ctx.fillStyle = 'rgba(47, 111, 199, 0.14)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 7);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -h / 2 + 8);
+      ctx.lineTo(0, -h / 2 - 14);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw(points, p) {
+      const { ctx, width, height } = setupCanvas();
+      ctx.clearRect(0, 0, width, height);
+
+      const xs = points.map(point => point.x).concat([p.endX - 1.8, p.endX + 1.8]);
+      const ys = points.map(point => point.y).concat([p.endY - p.slotWidth / 2, p.endY + p.slotWidth / 2]);
+      const minX = Math.min(...xs) - 1.2;
+      const maxX = Math.max(...xs) + 1.2;
+      const minY = Math.min(...ys) - 1.4;
+      const maxY = Math.max(...ys) + 1.4;
+      const pad = { left: 42, right: 24, top: 24, bottom: 42 };
+      const sx = (width - pad.left - pad.right) / (maxX - minX);
+      const sy = (height - pad.top - pad.bottom) / (maxY - minY);
+      const scale = Math.min(sx, sy);
+      const xOffset = pad.left + (width - pad.left - pad.right - (maxX - minX) * scale) / 2;
+      const yOffset = pad.top + (height - pad.top - pad.bottom - (maxY - minY) * scale) / 2;
+
+      function toCanvas(x, y) {
+        return {
+          x: xOffset + (x - minX) * scale,
+          y: yOffset + (maxY - y) * scale
+        };
+      }
+
+      const roadA = toCanvas(minX, -1.15);
+      const roadB = toCanvas(maxX, 3.2);
+      ctx.fillStyle = '#dfe5dc';
+      ctx.fillRect(roadA.x, roadB.y, roadB.x - roadA.x, roadA.y - roadB.y);
+
+      ctx.strokeStyle = '#b8c2b1';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([8, 8]);
+      const mid = toCanvas(minX, 1.0);
+      ctx.beginPath();
+      ctx.moveTo(mid.x, mid.y);
+      ctx.lineTo(toCanvas(maxX, 1.0).x, mid.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const bayCenter = toCanvas(p.endX, p.endY);
+      const bayW = 2.8 * scale;
+      const bayH = p.slotWidth * scale;
+      ctx.fillStyle = '#fff4d8';
+      ctx.strokeStyle = '#c9861a';
+      ctx.lineWidth = 2;
+      ctx.fillRect(bayCenter.x - bayW / 2, bayCenter.y - bayH / 2, bayW, bayH);
+      ctx.strokeRect(bayCenter.x - bayW / 2, bayCenter.y - bayH / 2, bayW, bayH);
+
+      ctx.strokeStyle = '#147d64';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      points.forEach((point, i) => {
+        const c = toCanvas(point.x, point.y);
+        if (i === 0) ctx.moveTo(c.x, c.y);
+        else ctx.lineTo(c.x, c.y);
+      });
+      ctx.stroke();
+
+      const start = points[0];
+      const midPoint = points[Math.floor(points.length / 2)];
+      const end = points[points.length - 1];
+      drawCar(ctx, toCanvas, start, '#2f6fc7');
+      drawCar(ctx, toCanvas, midPoint, '#147d64');
+      drawCar(ctx, toCanvas, end, '#c9861a');
+
+      ctx.fillStyle = '#6b7164';
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+      ctx.fillText('X / m', width - 58, height - 16);
+      ctx.save();
+      ctx.translate(18, 68);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Y / m', 0, 0);
+      ctx.restore();
+    }
+
+    function render() {
+      const p = getParams();
+      for (const id of ids) {
+        const value = Number(input[id].value);
+        label[id].textContent = id.includes('Yaw') ? value.toFixed(0) : value.toFixed(1);
+      }
+
+      const points = makePath(p);
+      const stats = pathStats(points, p);
+      metrics.pathLength.textContent = `${stats.length.toFixed(2)} m`;
+      metrics.maxCurvature.textContent = `${stats.maxK.toFixed(3)} 1/m`;
+      metrics.yawDelta.textContent = `${stats.yawDelta.toFixed(0)} deg`;
+      metrics.clearance.textContent = `${stats.clearance.toFixed(2)} m`;
+      draw(points, p);
+    }
+
+    ids.forEach(id => input[id].addEventListener('input', render));
+    document.getElementById('generateBtn').addEventListener('click', render);
+    window.addEventListener('resize', render);
+    render();
+  </script>
+</body>
+</html>

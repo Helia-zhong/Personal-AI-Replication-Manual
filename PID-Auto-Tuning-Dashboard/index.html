@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PID Auto Tuning Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --ink: #182235;
+      --muted: #667085;
+      --panel: #ffffff;
+      --line: #d8dee9;
+      --blue: #276ef1;
+      --green: #0f9f6e;
+      --amber: #d88914;
+      --red: #d33f49;
+      --soft-blue: #eaf1ff;
+      --soft-green: #e9f8f1;
+      --soft-amber: #fff4df;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      background: #1e334e;
+      color: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #22324a;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    label strong {
+      color: var(--ink);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    button.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    button:hover {
+      filter: brightness(0.98);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      border-top: 3px solid var(--line);
+      padding: 10px 4px 4px;
+      min-height: 68px;
+    }
+
+    .metric.blue { border-color: var(--blue); }
+    .metric.green { border-color: var(--green); }
+    .metric.amber { border-color: var(--amber); }
+    .metric.red { border-color: var(--red); }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 750;
+    }
+
+    .chart-wrap {
+      display: grid;
+      gap: 14px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 360px;
+      display: block;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    #convergenceChart {
+      height: 180px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0 0 10px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 22px;
+      height: 3px;
+      border-radius: 999px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .legend .dash {
+      background: repeating-linear-gradient(90deg, #8a94a6 0 6px, transparent 6px 10px);
+    }
+
+    .params {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .param-block {
+      border-left: 3px solid var(--line);
+      padding-left: 10px;
+    }
+
+    .param-block strong {
+      display: block;
+      color: var(--ink);
+      font-size: 16px;
+      margin-top: 4px;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    @media (max-width: 860px) {
+      .shell { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      canvas { height: 300px; }
+    }
+
+    @media (max-width: 520px) {
+      header { padding: 18px; }
+      h1 { font-size: 23px; }
+      .button-row, .params, .metrics { grid-template-columns: 1fr; }
+      canvas { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>线控转向 PID 智能调参大屏</h1>
+      <p class="subtitle">用粒子群搜索思路对 PID 参数进行仿真寻优，对比手动参数与智能优化后的阶跃响应、超调量、调节时间和稳态误差。</p>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">控制参数</h2>
+        <div class="field">
+          <label for="target">目标转角 <strong><span id="targetVal">30</span> deg</strong></label>
+          <input id="target" type="range" min="10" max="60" value="30" step="1">
+        </div>
+        <div class="field">
+          <label for="kp">Kp 比例系数 <strong id="kpVal">12.0</strong></label>
+          <input id="kp" type="range" min="1" max="40" value="12" step="0.1">
+        </div>
+        <div class="field">
+          <label for="ki">Ki 积分系数 <strong id="kiVal">1.5</strong></label>
+          <input id="ki" type="range" min="0" max="8" value="1.5" step="0.1">
+        </div>
+        <div class="field">
+          <label for="kd">Kd 微分系数 <strong id="kdVal">3.0</strong></label>
+          <input id="kd" type="range" min="0" max="12" value="3" step="0.1">
+        </div>
+        <div class="button-row">
+          <button class="primary" id="searchBtn" type="button">运行智能寻优</button>
+          <button id="resetBtn" type="button">重置参数</button>
+        </div>
+        <div class="params" aria-label="优化参数结果">
+          <div class="param-block">AI-Kp<strong id="bestKp">-</strong></div>
+          <div class="param-block">AI-Ki<strong id="bestKi">-</strong></div>
+          <div class="param-block">AI-Kd<strong id="bestKd">-</strong></div>
+        </div>
+        <p class="note">当前页面为浏览器端近似仿真，用于展示控制参数调优、指标评估和可视化表达方式。</p>
+      </aside>
+
+      <section class="panel">
+        <h2 class="panel-title">响应对比</h2>
+        <div class="metrics">
+          <div class="metric blue"><span>手动超调量</span><strong id="manualOvershoot">-</strong></div>
+          <div class="metric green"><span>AI 超调量</span><strong id="aiOvershoot">-</strong></div>
+          <div class="metric amber"><span>调节时间改善</span><strong id="settlingGain">-</strong></div>
+          <div class="metric red"><span>最佳适应度</span><strong id="fitnessVal">-</strong></div>
+        </div>
+        <div class="legend">
+          <span><i class="dash"></i>目标转角</span>
+          <span><i style="background:var(--blue)"></i>手动 PID</span>
+          <span><i style="background:var(--green)"></i>AI 优化 PID</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="responseChart" aria-label="PID 阶跃响应曲线"></canvas>
+          <canvas id="convergenceChart" aria-label="PSO 适应度收敛曲线"></canvas>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      best: { kp: 18.4, ki: 3.4, kd: 6.1 },
+      history: []
+    };
+
+    const els = {
+      target: document.getElementById('target'),
+      kp: document.getElementById('kp'),
+      ki: document.getElementById('ki'),
+      kd: document.getElementById('kd'),
+      targetVal: document.getElementById('targetVal'),
+      kpVal: document.getElementById('kpVal'),
+      kiVal: document.getElementById('kiVal'),
+      kdVal: document.getElementById('kdVal'),
+      bestKp: document.getElementById('bestKp'),
+      bestKi: document.getElementById('bestKi'),
+      bestKd: document.getElementById('bestKd'),
+      manualOvershoot: document.getElementById('manualOvershoot'),
+      aiOvershoot: document.getElementById('aiOvershoot'),
+      settlingGain: document.getElementById('settlingGain'),
+      fitnessVal: document.getElementById('fitnessVal'),
+      responseChart: document.getElementById('responseChart'),
+      convergenceChart: document.getElementById('convergenceChart')
+    };
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function currentManual() {
+      return {
+        kp: Number(els.kp.value),
+        ki: Number(els.ki.value),
+        kd: Number(els.kd.value)
+      };
+    }
+
+    function responseValue(t, params, target) {
+      const wn = 1.35 + params.kp * 0.12 + params.ki * 0.08;
+      const zeta = clamp(0.18 + params.kd * 0.078 + params.ki * 0.012 - params.kp * 0.003, 0.18, 1.05);
+      const gain = clamp(0.875 + params.ki * 0.018 + params.kp * 0.002, 0.86, 1.01);
+
+      if (zeta < 0.999) {
+        const wd = wn * Math.sqrt(1 - zeta * zeta);
+        const phi = Math.atan(Math.sqrt(1 - zeta * zeta) / zeta);
+        return target * gain * (1 - (Math.exp(-zeta * wn * t) / Math.sqrt(1 - zeta * zeta)) * Math.sin(wd * t + phi));
+      }
+
+      return target * gain * (1 - Math.exp(-wn * t) * (1 + wn * t));
+    }
+
+    function makeCurve(params, target) {
+      const points = [];
+      for (let i = 0; i <= 220; i += 1) {
+        const t = i / 40;
+        points.push({ t, y: responseValue(t, params, target) });
+      }
+      return points;
+    }
+
+    function summarize(points, target) {
+      const maxY = Math.max(...points.map(p => p.y));
+      const finalY = points[points.length - 1].y;
+      const tolerance = Math.max(target * 0.02, 0.2);
+      const overshoot = Math.max(0, (maxY - target) / target * 100);
+      const steadyError = Math.abs(target - finalY);
+      let settling = points[points.length - 1].t;
+
+      for (let i = 0; i < points.length; i += 1) {
+        const stable = points.slice(i).every(p => Math.abs(p.y - target) <= tolerance);
+        if (stable) {
+          settling = points[i].t;
+          break;
+        }
+      }
+
+      return { overshoot, steadyError, settling };
+    }
+
+    function fitness(params, target) {
+      const summary = summarize(makeCurve(params, target), target);
+      const effort = params.kp * 0.008 + params.ki * 0.04 + params.kd * 0.015;
+      return summary.settling * 0.95 + summary.overshoot * 0.08 + summary.steadyError * 0.42 + effort;
+    }
+
+    function runSearch() {
+      const target = Number(els.target.value);
+      const bounds = {
+        kp: [1, 40],
+        ki: [0, 8],
+        kd: [0, 12]
+      };
+      const particles = Array.from({ length: 26 }, () => ({
+        p: {
+          kp: 1 + Math.random() * 39,
+          ki: Math.random() * 8,
+          kd: Math.random() * 12
+        },
+        v: { kp: 0, ki: 0, kd: 0 },
+        best: null,
+        score: Infinity
+      }));
+
+      let global = null;
+      let globalScore = Infinity;
+      const history = [];
+
+      for (let iter = 0; iter < 36; iter += 1) {
+        for (const particle of particles) {
+          const score = fitness(particle.p, target);
+          if (score < particle.score) {
+            particle.score = score;
+            particle.best = { ...particle.p };
+          }
+          if (score < globalScore) {
+            globalScore = score;
+            global = { ...particle.p };
+          }
+        }
+
+        history.push(globalScore);
+
+        for (const particle of particles) {
+          for (const key of ['kp', 'ki', 'kd']) {
+            const r1 = Math.random();
+            const r2 = Math.random();
+            particle.v[key] = 0.64 * particle.v[key] + 1.35 * r1 * (particle.best[key] - particle.p[key]) + 1.35 * r2 * (global[key] - particle.p[key]);
+            particle.p[key] = clamp(particle.p[key] + particle.v[key], bounds[key][0], bounds[key][1]);
+          }
+        }
+      }
+
+      state.best = global;
+      state.history = history;
+      render();
+    }
+
+    function setupCanvas(canvas) {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function drawGrid(ctx, width, height, left, top, plotW, plotH) {
+      ctx.strokeStyle = '#e4e8f0';
+      ctx.lineWidth = 1;
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+      ctx.fillStyle = '#667085';
+
+      for (let i = 0; i <= 5; i += 1) {
+        const y = top + plotH * i / 5;
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + plotW, y);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i <= 6; i += 1) {
+        const x = left + plotW * i / 6;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, top + plotH);
+        ctx.stroke();
+      }
+    }
+
+    function drawResponse(manual, ai, target) {
+      const { ctx, width, height } = setupCanvas(els.responseChart);
+      ctx.clearRect(0, 0, width, height);
+      const left = 54;
+      const right = 18;
+      const top = 18;
+      const bottom = 44;
+      const plotW = width - left - right;
+      const plotH = height - top - bottom;
+      const allValues = manual.concat(ai).map(p => p.y).concat([target]);
+      const maxY = Math.max(target * 1.25, ...allValues) * 1.05;
+      const minY = Math.min(0, ...allValues);
+      const x = t => left + t / 5.5 * plotW;
+      const y = val => top + (maxY - val) / (maxY - minY) * plotH;
+
+      drawGrid(ctx, width, height, left, top, plotW, plotH);
+
+      ctx.fillStyle = '#667085';
+      ctx.fillText('转角 deg', left, 14);
+      ctx.fillText('时间 s', left + plotW - 34, top + plotH + 32);
+
+      ctx.setLineDash([7, 7]);
+      ctx.strokeStyle = '#8a94a6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(left, y(target));
+      ctx.lineTo(left + plotW, y(target));
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      function line(points, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        points.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(x(p.t), y(p.y));
+          else ctx.lineTo(x(p.t), y(p.y));
+        });
+        ctx.stroke();
+      }
+
+      line(manual, '#276ef1');
+      line(ai, '#0f9f6e');
+
+      ctx.fillStyle = '#667085';
+      for (let i = 0; i <= 5; i += 1) {
+        const value = maxY - (maxY - minY) * i / 5;
+        ctx.fillText(value.toFixed(0), 14, top + plotH * i / 5 + 4);
+      }
+    }
+
+    function drawConvergence(history) {
+      const { ctx, width, height } = setupCanvas(els.convergenceChart);
+      ctx.clearRect(0, 0, width, height);
+      const left = 54;
+      const right = 18;
+      const top = 20;
+      const bottom = 34;
+      const plotW = width - left - right;
+      const plotH = height - top - bottom;
+
+      drawGrid(ctx, width, height, left, top, plotW, plotH);
+      ctx.fillStyle = '#667085';
+      ctx.fillText('适应度', left, 14);
+      ctx.fillText('迭代', left + plotW - 24, top + plotH + 26);
+
+      if (!history.length) {
+        ctx.fillStyle = '#98a2b3';
+        ctx.fillText('运行智能寻优后显示收敛曲线', left + 12, top + plotH / 2);
+        return;
+      }
+
+      const maxV = Math.max(...history);
+      const minV = Math.min(...history);
+      const span = Math.max(maxV - minV, 0.001);
+      const x = i => left + i / Math.max(history.length - 1, 1) * plotW;
+      const y = v => top + (v - minV) / span * plotH;
+
+      ctx.strokeStyle = '#d88914';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      history.forEach((v, i) => {
+        const px = x(i);
+        const py = y(v);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+
+    function pct(value) {
+      return `${value.toFixed(1)}%`;
+    }
+
+    function render() {
+      const target = Number(els.target.value);
+      const manualParams = currentManual();
+      const manual = makeCurve(manualParams, target);
+      const ai = makeCurve(state.best, target);
+      const manualSummary = summarize(manual, target);
+      const aiSummary = summarize(ai, target);
+      const settlingGain = Math.max(0, (manualSummary.settling - aiSummary.settling) / manualSummary.settling * 100);
+
+      els.targetVal.textContent = target.toFixed(0);
+      els.kpVal.textContent = manualParams.kp.toFixed(1);
+      els.kiVal.textContent = manualParams.ki.toFixed(1);
+      els.kdVal.textContent = manualParams.kd.toFixed(1);
+      els.bestKp.textContent = state.best.kp.toFixed(2);
+      els.bestKi.textContent = state.best.ki.toFixed(2);
+      els.bestKd.textContent = state.best.kd.toFixed(2);
+      els.manualOvershoot.textContent = pct(manualSummary.overshoot);
+      els.aiOvershoot.textContent = pct(aiSummary.overshoot);
+      els.settlingGain.textContent = pct(settlingGain);
+      els.fitnessVal.textContent = fitness(state.best, target).toFixed(2);
+
+      drawResponse(manual, ai, target);
+      drawConvergence(state.history);
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', runSearch);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      els.target.value = 30;
+      els.kp.value = 12;
+      els.ki.value = 1.5;
+      els.kd.value = 3;
+      state.best = { kp: 18.4, ki: 3.4, kd: 6.1 };
+      state.history = [];
+      render();
+    });
+
+    [els.target, els.kp, els.ki, els.kd].forEach(input => input.addEventListener('input', render));
+    window.addEventListener('resize', render);
+    render();
+  </script>
+</body>
+</html>
