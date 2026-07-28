@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoVision Copilot — 行车场景理解助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0 20px; border-bottom: 1px solid #2a2a3e; margin-bottom: 24px; }
+        header h1 { font-size: 28px; color: #fff; margin-bottom: 6px; }
+        header p { color: #888; font-size: 14px; }
+        .badge { display: inline-block; background: #1a3a5c; color: #5ba3f5; padding: 3px 10px; border-radius: 20px; font-size: 12px; margin-bottom: 8px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .card { background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 12px; padding: 20px; }
+        .card-title { font-size: 14px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-title span { font-size: 18px; }
+        .scene-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .scene-btn { padding: 10px; border: 1px solid #2a2a3e; background: transparent; color: #888; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .scene-btn:hover { border-color: #5ba3f5; color: #5ba3f5; }
+        .scene-btn.active { background: #1a3a5c; border-color: #5ba3f5; color: #5ba3f5; }
+        .upload-zone { border: 2px dashed #2a2a3e; border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: #5ba3f5; background: rgba(91, 163, 245, 0.05); }
+        .upload-zone input[type="file"] { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .upload-icon { font-size: 40px; }
+        .upload-text { color: #666; font-size: 14px; }
+        .upload-text strong { color: #5ba3f5; }
+        .preview-img { max-width: 100%; max-height: 300px; border-radius: 8px; display: block; margin: 0 auto; }
+        .clear-btn { margin-top: 10px; background: #333; color: #aaa; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .clear-btn:hover { background: #444; }
+        .preset-questions { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+        .preset-q { background: transparent; border: 1px solid #2a2a3e; color: #aaa; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; text-align: left; transition: all 0.2s; }
+        .preset-q:hover { border-color: #5ba3f5; color: #5ba3f5; background: rgba(91,163,245,0.05); }
+        .chat-area { display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
+        .chat-area::-webkit-scrollbar { width: 4px; }
+        .chat-area::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .msg { padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 14px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-user { background: #1a3a5c; color: #c8dff5; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-assistant { background: #1e1e32; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #2a2a3e; }
+        .msg-assistant .result-block { background: #141428; border-radius: 8px; padding: 12px; margin-top: 10px; }
+        .detection-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #222; }
+        .detection-item:last-child { border-bottom: none; }
+        .det-icon { font-size: 16px; }
+        .det-label { color: #aaa; font-size: 13px; }
+        .risk-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin: 4px 2px; }
+        .risk-low { background: rgba(0,200,0,0.15); color: #4caf50; }
+        .risk-medium { background: rgba(255,180,0,0.15); color: #ff9800; }
+        .risk-high { background: rgba(255,60,60,0.15); color: #f44336; }
+        .risk-low::before { content: '🟢 '; }
+        .risk-medium::before { content: '🟡 '; }
+        .risk-high::before { content: '🔴 '; }
+        .advice { color: #5ba3f5; font-size: 13px; padding: 8px 12px; background: rgba(91,163,245,0.1); border-radius: 6px; margin-top: 8px; }
+        .input-row { display: flex; gap: 8px; margin-top: 16px; }
+        .input-row input { flex: 1; background: #141428; border: 1px solid #2a2a3e; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 14px; outline: none; }
+        .input-row input:focus { border-color: #5ba3f5; }
+        .send-btn { background: #5ba3f5; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: background 0.2s; }
+        .send-btn:hover { background: #4080d0; }
+        .send-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .thinking { display: flex; align-items: center; gap: 8px; color: #666; font-size: 13px; padding: 12px 16px; }
+        .spinner { width: 16px; height: 16px; border: 2px solid #333; border-top-color: #5ba3f5; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .annotated-overlay { position: relative; display: inline-block; }
+        .annotated-overlay img { max-width: 100%; max-height: 280px; border-radius: 8px; display: block; }
+        .annotated-overlay .overlay-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px; font-size: 11px; text-align: center; font-weight: 600; border-radius: 0 0 8px 8px; }
+        .annotated-overlay .overlay-label.low { background: rgba(0,180,0,0.7); }
+        .annotated-overlay .overlay-label.medium { background: rgba(255,160,0,0.7); }
+        .annotated-overlay .overlay-label.high { background: rgba(255,50,50,0.7); }
+        .welcome-msg { text-align: center; padding: 60px 20px; color: #555; }
+        .welcome-msg .icon { font-size: 50px; margin-bottom: 16px; }
+        .welcome-msg p { font-size: 14px; line-height: 1.8; }
+        .welcome-msg strong { color: #5ba3f5; }
+        .annotated-result { margin-top: 12px; }
+        @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="badge">🚗 车辆感知 · VLM 演示</div>
+        <h1>AutoVision Copilot</h1>
+        <p>多模态行车场景理解对话助手 · 浏览器版</p>
+    </header>
+
+    <div class="main-layout">
+        <!-- 左侧：上传 + 场景 -->
+        <div>
+            <div class="card">
+                <div class="card-title"><span>📌</span> 场景模式</div>
+                <div class="scene-selector">
+                    <button class="scene-btn active" data-scene="urban" onclick="setScene(this)">🏙️ 城市道路</button>
+                    <button class="scene-btn" data-scene="highway" onclick="setScene(this)">🛣️ 高速公路</button>
+                    <button class="scene-btn" data-scene="parking" onclick="setScene(this)">🅿️ 停车场</button>
+                </div>
+                <div id="scene-desc" style="color:#666;font-size:12px;margin-bottom:12px;">重点关注：红绿灯状态、行人横穿、电动车</div>
+
+                <div class="card-title" style="margin-top:16px;"><span>📤</span> 上传行车画面</div>
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" accept="image/*,video/*" onchange="handleFile(this.files[0])">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">点击或拖拽上传<br><strong>行车图片 / 视频</strong></div>
+                </div>
+                <div id="previewContainer" style="display:none;margin-top:12px;">
+                    <img id="previewImg" class="preview-img">
+                    <button class="clear-btn" onclick="clearFile()">✕ 清除</button>
+                </div>
+                <div id="videoInfo" style="display:none;margin-top:8px;font-size:12px;color:#666;text-align:center;"></div>
+
+                <div id="presetSection" style="display:none;">
+                    <div class="card-title" style="margin-top:16px;"><span>💬</span> 快速提问</div>
+                    <div class="preset-questions" id="presetQuestions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：对话 -->
+        <div>
+            <div class="card" style="height:100%;">
+                <div class="card-title"><span>💭</span> 对话记录</div>
+                <div id="chatArea">
+                    <div class="welcome-msg">
+                        <div class="icon">👋</div>
+                        <p>欢迎使用 AutoVision Copilot！<br>请先<strong>上传行车画面</strong>，<br>然后问我关于路况、风险、驾驶建议的问题。</p>
+                        <p style="margin-top:12px;font-size:12px;">💡 示例：前方红绿灯是什么状态？变道安全吗？</p>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="questionInput" placeholder="问我任何关于画面的问题..." onkeydown="if(event.key==='Enter')sendQuestion()">
+                    <button class="send-btn" id="sendBtn" onclick="sendQuestion()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const PRESET_QUESTIONS = {
+    urban: [
+        "前方红绿灯是什么状态？",
+        "斑马线上有行人吗？",
+        "右侧有电动车吗？需要注意什么？",
+        "这个路口适合左转吗？",
+        "周围有几辆车？变道安全吗？"
+    ],
+    highway: [
+        "前方车辆距离有多远？",
+        "当前车道线清晰吗？",
+        "有车辆正在汇入吗？",
+        "前方有团雾或障碍物吗？",
+        "可以加速超车吗？"
+    ],
+    parking: [
+        "周围有可用的停车位吗？",
+        "停在我旁边的车是什么类型？",
+        "有行人经过吗？",
+        "有限速标志吗？当前限速多少？",
+        "倒车时需要注意什么？"
+    ]
+};
+
+const MOCK_RESPONSES = {
+    traffic_light: {
+        detections: [
+            {icon: "🚦", type: "交通信号灯", detail: "信号灯为绿色", count: 1},
+            {icon: "🚗", type: "机动车", detail: "前方1辆SUV，距离约30m", count: 1},
+            {icon: "🚶", type: "行人", detail: "斑马线上暂无行人", count: 0}
+        ],
+        risk: "low", advice: "信号灯为绿灯，周围无行人，可正常行驶。"
+    },
+    pedestrian: {
+        detections: [
+            {icon: "🚦", type: "交通信号灯", detail: "信号灯为绿色", count: 1},
+            {icon: "🚗", type: "机动车", detail: "周围3辆，分布在左右两侧", count: 3},
+            {icon: "🚶", type: "行人", detail: "右侧斑马线上有1名行人正在通过", count: 1}
+        ],
+        risk: "medium", advice: "斑马线上有行人通行，建议减速让行，注意观察左侧来车。"
+    },
+    vehicle: {
+        detections: [
+            {icon: "🚗", type: "机动车", detail: "前方2辆，右侧1辆", count: 3},
+            {icon: "🛻", type: "货车", detail: "前方大货车，距离约50m", count: 1}
+        ],
+        risk: "low", advice: "前方路况良好，货车距离较远，可保持当前车道行驶。"
+    },
+    lane: {
+        detections: [
+            {icon: "📏", type: "车道线", detail: "车道线清晰可见", count: 1},
+            {icon: "🚗", type: "机动车", detail: "本车道前方约20m处有1辆", count: 1}
+        ],
+        risk: "low", advice: "车道线清晰，当前车道无异常，可正常行驶。"
+    },
+    parking_spot: {
+        detections: [
+            {icon: "🅿️", type: "停车位", detail: "左侧有2个空位", count: 2},
+            {icon: "🚗", type: "相邻车辆", detail: "右侧停有1辆SUV", count: 1},
+            {icon: "🚶", type: "行人", detail: "视野内暂无行人", count: 0}
+        ],
+        risk: "low", advice: "左侧有2个可用车位，倒车入库时注意右侧车辆和后方行人。"
+    },
+    default: {
+        detections: [
+            {icon: "🚗", type: "机动车", detail: "周围检测到车辆", count: 2},
+            {icon: "📍", type: "道路环境", detail: "当前场景可正常行驶", count: 1}
+        ],
+        risk: "low", advice: "当前路况良好，可正常行驶，请注意观察周围环境。"
+    }
+};
+
+let currentScene = 'urban';
+let hasFile = false;
+
+function setScene(btn) {
+    document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentScene = btn.dataset.scene;
+    const descs = {
+        urban: "重点关注：红绿灯状态、行人横穿、电动车",
+        highway: "重点关注：前方车辆距离、车道线、汇入车辆",
+        parking: "重点关注：车位标线、相邻车辆、行人、限速牌"
+    };
+    document.getElementById('scene-desc').textContent = descs[currentScene];
+    if (hasFile) renderPresets();
+}
+
+function handleFile(file) {
+    if (!file) return;
+    const preview = document.getElementById('previewImg');
+    const container = document.getElementById('previewContainer');
+    const videoInfo = document.getElementById('videoInfo');
+    const uploadZone = document.getElementById('uploadZone');
+    const presetSection = document.getElementById('presetSection');
+
+    if (file.type.startsWith('video/')) {
+        videoInfo.textContent = `📹 视频：${file.name}（已截取第一帧预览）`;
+        videoInfo.style.display = 'block';
+        // 视频截帧用 canvas
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(file);
+        video.addEventListener('loadeddata', function() {
+            video.currentTime = 0.1;
+        });
+        video.addEventListener('seeked', function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            preview.src = canvas.toDataURL('image/jpeg');
+            URL.revokeObjectURL(video.src);
+        });
+        hasFile = true;
+    } else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        videoInfo.style.display = 'none';
+        hasFile = true;
+    }
+    container.style.display = 'block';
+    uploadZone.style.display = 'none';
+    presetSection.style.display = 'block';
+    renderPresets();
+}
+
+function clearFile() {
+    document.getElementById('previewContainer').style.display = 'none';
+    document.getElementById('uploadZone').style.display = 'flex';
+    document.getElementById('presetSection').style.display = 'none';
+    document.getElementById('videoInfo').style.display = 'none';
+    document.querySelector('#uploadZone input').value = '';
+    hasFile = false;
+}
+
+function renderPresets() {
+    const container = document.getElementById('presetQuestions');
+    container.innerHTML = '';
+    PRESET_QUESTIONS[currentScene].forEach((q, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-q';
+        btn.textContent = q;
+        btn.onclick = () => {
+            document.getElementById('questionInput').value = q;
+            sendQuestion();
+        };
+        container.appendChild(btn);
+    });
+}
+
+function selectMockResponse(question) {
+    const q = question.toLowerCase();
+    if (q.includes('红绿灯') || q.includes('信号灯') || q.includes('绿灯') || q.includes('红灯') || q.includes('黄灯')) return MOCK_RESPONSES.traffic_light;
+    if (q.includes('行人') || q.includes('斑马线') || q.includes('过人')) return MOCK_RESPONSES.pestrian;
+    if (q.includes('停车') || q.includes('车位') || q.includes('泊车')) return MOCK_RESPONSES.parking_spot;
+    if (q.includes('车道') || q.includes('车道线') || q.includes('变道')) return MOCK_RESPONSES.lane;
+    if (q.includes('车') || q.includes('距离') || q.includes('超车')) return MOCK_RESPONSES.vehicle;
+    return MOCK_RESPONSES.default;
+}
+
+function buildAssistantHTML(response, imgData) {
+    const detections = response.detections.map(d =>
+        `<div class="detection-item">
+            <span class="det-icon">${d.icon}</span>
+            <div>
+                <div class="det-label"><strong>${d.type}</strong> × ${d.count}</div>
+                <div style="color:#555;font-size:12px;">${d.detail}</div>
+            </div>
+        </div>`
+    ).join('');
+
+    const overlayClass = {low:'low',medium:'medium',high:'high'}[response.risk];
+    const annotatedPart = imgData ? `
+        <div class="annotated-result">
+            <div style="font-size:11px;color:#666;margin-bottom:6px;">📊 检测结果标注</div>
+            <div class="annotated-overlay">
+                <img src="${imgData}" alt="annotated">
+                <div class="overlay-label ${overlayClass}">风险等级: ${response.risk === 'low' ? '低' : response.risk === 'medium' ? '中' : '高'}</div>
+            </div>
+        </div>` : '';
+
+    return `
+        <div class="result-block">
+            <div class="detection-item" style="border:none;font-size:12px;color:#666;padding-bottom:8px;">🏷️ 目标检测结果</div>
+            ${detections}
+            <div style="margin-top:10px;">
+                <span class="risk-badge risk-${response.risk}">风险等级：${response.risk === 'low' ? '低' : response.risk === 'medium' ? '中' : '高'}</span>
+            </div>
+            <div class="advice">💡 ${response.advice}</div>
+        </div>
+        ${annotatedPart}`;
+}
+
+function addMessage(role, content) {
+    const chat = document.getElementById('chatArea');
+    // Remove welcome if first message
+    if (chat.querySelector('.welcome-msg')) {
+        chat.innerHTML = '';
+    }
+    const div = document.createElement('div');
+    div.className = `msg msg-${role}`;
+    div.innerHTML = content;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function addThinking() {
+    const chat = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className = 'msg msg-assistant';
+    div.id = 'thinking-msg';
+    div.innerHTML = `<div class="thinking"><div class="spinner"></div>正在分析画面...</div>`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function removeThinking() {
+    const el = document.getElementById('thinking-msg');
+    if (el) el.remove();
+}
+
+function sendQuestion() {
+    const input = document.getElementById('questionInput');
+    const btn = document.getElementById('sendBtn');
+    const question = input.value.trim();
+
+    if (!question) return;
+    if (!hasFile) { alert('请先上传行车画面！'); return; }
+
+    // Add user message
+    addMessage('user', question);
+    input.value = '';
+    btn.disabled = true;
+
+    // Show thinking
+    addThinking();
+
+    // Simulate AI analysis delay
+    setTimeout(() => {
+        removeThinking();
+        const response = selectMockResponse(question);
+        const imgSrc = document.getElementById('previewImg').src;
+        const assistantHTML = buildAssistantHTML(response, imgSrc);
+        addMessage('assistant', assistantHTML);
+        btn.disabled = false;
+    }, 1500);
+}
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+</script>
+</body>
+</html>
