@@ -1,0 +1,11 @@
+{
+  "scenario": "pedal_conflict",
+  "description": "A compact sample trace for documentation. The browser demo generates longer streams locally.",
+  "frames": [
+    {"timestamp_s": 0.0, "speed_kph": 42.3, "rpm": 2440.2, "throttle_pct": 31.2, "brake_pct": 0.0, "steering_deg": 1.2, "yaw_rate_dps": 0.4, "battery_v": 13.62, "coolant_temp_c": 82.1},
+    {"timestamp_s": 0.2, "speed_kph": 43.1, "rpm": 2478.5, "throttle_pct": 34.8, "brake_pct": 0.0, "steering_deg": 2.1, "yaw_rate_dps": 0.6, "battery_v": 13.59, "coolant_temp_c": 82.3},
+    {"timestamp_s": 0.4, "speed_kph": 44.4, "rpm": 2531.0, "throttle_pct": 68.5, "brake_pct": 41.2, "steering_deg": 2.6, "yaw_rate_dps": 0.5, "battery_v": 13.58, "coolant_temp_c": 82.4},
+    {"timestamp_s": 0.6, "speed_kph": 44.1, "rpm": 2510.4, "throttle_pct": 72.0, "brake_pct": 45.8, "steering_deg": 3.0, "yaw_rate_dps": 0.7, "battery_v": 13.57, "coolant_temp_c": 82.5},
+    {"timestamp_s": 0.8, "speed_kph": 43.7, "rpm": 2498.1, "throttle_pct": 33.4, "brake_pct": 2.0, "steering_deg": 2.4, "yaw_rate_dps": 0.5, "battery_v": 13.6, "coolant_temp_c": 82.6}
+  ]
+}

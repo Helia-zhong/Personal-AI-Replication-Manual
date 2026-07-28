@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parking Planner Lab</title>
+  <style>
+    :root {
+      --bg: #f5f6f3;
+      --ink: #172116;
+      --muted: #65705f;
+      --panel: #fff;
+      --line: #d8dfd2;
+      --green: #147d64;
+      --blue: #2f6fc7;
+      --amber: #c9861a;
+      --red: #c93445;
+      --grid: #e5eadf;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; color: var(--ink); background: var(--bg); }
+    .shell { max-width: 1220px; margin: 0 auto; padding: 24px; }
+    header { background: #20351f; color: #fff; border-radius: 8px; padding: 24px; margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: 0; }
+    .subtitle { margin: 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.7; }
+    .layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    .panel-title { margin: 0 0 14px; font-size: 15px; font-weight: 750; }
+    label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 7px; }
+    select, button { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 10px 12px; font: inherit; }
+    button { cursor: pointer; font-weight: 700; }
+    button.primary { background: var(--green); border-color: var(--green); color: #fff; }
+    .control { margin-bottom: 14px; }
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .metric { border-top: 3px solid var(--line); padding: 10px 4px 4px; min-height: 66px; }
+    .metric.green { border-color: var(--green); }
+    .metric.blue { border-color: var(--blue); }
+    .metric.amber { border-color: var(--amber); }
+    .metric.red { border-color: var(--red); }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .metric strong { display: block; font-size: 22px; line-height: 1.2; }
+    canvas { width: 100%; height: 520px; display: block; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+    .legend i { display: inline-block; width: 18px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+    .note { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--line); padding-top: 12px; }
+    @media (max-width: 900px) {
+      .shell { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      canvas { height: 420px; }
+    }
+    @media (max-width: 540px) {
+      header { padding: 18px; }
+      h1 { font-size: 23px; }
+      .metrics, .button-grid { grid-template-columns: 1fr; }
+      canvas { height: 340px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>Parking Planner Lab 自动泊车路径规划实验室</h1>
+      <p class="subtitle">在栅格地图中配置车位和障碍物，使用 A* 搜索可行路径，再进行路径简化和平滑回放。</p>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">规划设置</h2>
+        <div class="control">
+          <label for="scenario">场景</label>
+          <select id="scenario">
+            <option value="parallel">平行车位</option>
+            <option value="narrow">窄车位</option>
+            <option value="blocked">障碍物遮挡</option>
+          </select>
+        </div>
+        <div class="button-grid">
+          <button class="primary" id="planBtn" type="button">重新规划</button>
+          <button id="playBtn" type="button">动画回放</button>
+        </div>
+        <p class="note">本实验室使用栅格 A* 展示路径搜索流程。真实车辆泊车还需要结合车辆运动学、最小转弯半径和闭环控制。</p>
+      </aside>
+
+      <section class="panel">
+        <h2 class="panel-title">规划结果</h2>
+        <div class="metrics">
+          <div class="metric green"><span>路径长度</span><strong id="pathLen">-</strong></div>
+          <div class="metric blue"><span>搜索节点</span><strong id="visitedCount">-</strong></div>
+          <div class="metric amber"><span>转折点</span><strong id="turnCount">-</strong></div>
+          <div class="metric red"><span>状态</span><strong id="planStatus">-</strong></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#dce3ea"></i>可行区域</span>
+          <span><i style="background:#303b4c"></i>障碍物</span>
+          <span><i style="background:#c9861a"></i>目标车位</span>
+          <span><i style="background:#147d64"></i>规划路径</span>
+        </div>
+        <canvas id="map" aria-label="自动泊车路径规划地图"></canvas>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const width = 30;
+    const height = 18;
+    const canvas = document.getElementById('map');
+    let current = null;
+    let animating = false;
+
+    const scenarios = {
+      parallel: {
+        start: [2, 14],
+        goal: [26, 4],
+        slot: { x: 24, y: 2, w: 4, h: 5 },
+        obstacles: [
+          { x: 8, y: 5, w: 6, h: 5 },
+          { x: 18, y: 8, w: 4, h: 6 },
+          { x: 23, y: 8, w: 5, h: 4 }
+        ]
+      },
+      narrow: {
+        start: [3, 15],
+        goal: [25, 5],
+        slot: { x: 23, y: 3, w: 4, h: 4 },
+        obstacles: [
+          { x: 7, y: 4, w: 7, h: 4 },
+          { x: 15, y: 11, w: 5, h: 5 },
+          { x: 22, y: 8, w: 6, h: 3 },
+          { x: 27, y: 2, w: 2, h: 8 }
+        ]
+      },
+      blocked: {
+        start: [2, 13],
+        goal: [25, 4],
+        slot: { x: 23, y: 2, w: 5, h: 5 },
+        obstacles: [
+          { x: 6, y: 5, w: 5, h: 7 },
+          { x: 12, y: 3, w: 4, h: 5 },
+          { x: 18, y: 9, w: 6, h: 6 },
+          { x: 23, y: 8, w: 4, h: 3 }
+        ]
+      }
+    };
+
+    function obstacleSet(rects) {
+      const set = new Set();
+      rects.forEach(rect => {
+        for (let x = rect.x; x < rect.x + rect.w; x += 1) {
+          for (let y = rect.y; y < rect.y + rect.h; y += 1) {
+            set.add(`${x},${y}`);
+          }
+        }
+      });
+      return set;
+    }
+
+    function neighbors(point) {
+      const [x, y] = point;
+      const result = [];
+      for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) result.push([nx, ny]);
+      }
+      return result;
+    }
+
+    function dist(a, b) {
+      return Math.hypot(a[0] - b[0], a[1] - b[1]);
+    }
+
+    function key(p) {
+      return `${p[0]},${p[1]}`;
+    }
+
+    function astar(scene) {
+      const blocked = obstacleSet(scene.obstacles);
+      const start = scene.start;
+      const goal = scene.goal;
+      const open = [{ p: start, f: 0 }];
+      const came = new Map([[key(start), null]]);
+      const cost = new Map([[key(start), 0]]);
+      const visited = [];
+
+      while (open.length) {
+        open.sort((a, b) => a.f - b.f);
+        const current = open.shift().p;
+        visited.push(current);
+        if (key(current) === key(goal)) break;
+
+        for (const next of neighbors(current)) {
+          const nk = key(next);
+          if (blocked.has(nk)) continue;
+          const newCost = cost.get(key(current)) + dist(current, next);
+          if (!cost.has(nk) || newCost < cost.get(nk)) {
+            cost.set(nk, newCost);
+            came.set(nk, current);
+            open.push({ p: next, f: newCost + dist(next, goal) });
+          }
+        }
+      }
+
+      const path = [];
+      let cur = goal;
+      if (!came.has(key(goal))) return { path, visited };
+      while (cur) {
+        path.push(cur);
+        cur = came.get(key(cur));
+      }
+      path.reverse();
+      return { path, visited };
+    }
+
+    function simplify(path) {
+      if (path.length <= 2) return path;
+      const out = [path[0]];
+      let lastDir = null;
+      for (let i = 1; i < path.length; i += 1) {
+        const dir = [path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]].join(',');
+        if (lastDir && dir !== lastDir) out.push(path[i - 1]);
+        lastDir = dir;
+      }
+      out.push(path[path.length - 1]);
+      return out;
+    }
+
+    function smooth(points) {
+      if (points.length < 2) return points;
+      const smoothed = [];
+      for (let i = 0; i < points.length - 1; i += 1) {
+        const a = points[i];
+        const b = points[i + 1];
+        const steps = Math.max(6, Math.round(dist(a, b) * 4));
+        for (let j = 0; j < steps; j += 1) {
+          const t = j / steps;
+          const ease = t * t * (3 - 2 * t);
+          smoothed.push([a[0] + (b[0] - a[0]) * ease, a[1] + (b[1] - a[1]) * ease]);
+        }
+      }
+      smoothed.push(points[points.length - 1]);
+      return smoothed;
+    }
+
+    function setupCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function draw(carIndex = null) {
+      if (!current) return;
+      const { scene, path, visited, simple, smoothPath } = current;
+      const { ctx, width: cw, height: ch } = setupCanvas();
+      ctx.clearRect(0, 0, cw, ch);
+      const pad = 26;
+      const cell = Math.min((cw - pad * 2) / width, (ch - pad * 2) / height);
+      const ox = (cw - cell * width) / 2;
+      const oy = (ch - cell * height) / 2;
+      const px = x => ox + x * cell;
+      const py = y => oy + y * cell;
+
+      ctx.fillStyle = '#dce3ea';
+      ctx.fillRect(px(0), py(0), cell * width, cell * height);
+      ctx.strokeStyle = '#e5eadf';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= width; x += 1) {
+        ctx.beginPath();
+        ctx.moveTo(px(x), py(0));
+        ctx.lineTo(px(x), py(height));
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += 1) {
+        ctx.beginPath();
+        ctx.moveTo(px(0), py(y));
+        ctx.lineTo(px(width), py(y));
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#303b4c';
+      scene.obstacles.forEach(rect => ctx.fillRect(px(rect.x), py(rect.y), rect.w * cell, rect.h * cell));
+      ctx.fillStyle = 'rgba(201,134,26,.22)';
+      ctx.strokeStyle = '#c9861a';
+      ctx.lineWidth = 2;
+      ctx.fillRect(px(scene.slot.x), py(scene.slot.y), scene.slot.w * cell, scene.slot.h * cell);
+      ctx.strokeRect(px(scene.slot.x), py(scene.slot.y), scene.slot.w * cell, scene.slot.h * cell);
+
+      ctx.fillStyle = 'rgba(47,111,199,.16)';
+      visited.forEach(p => ctx.fillRect(px(p[0]), py(p[1]), cell, cell));
+
+      if (path.length) {
+        ctx.strokeStyle = 'rgba(47,111,199,.38)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        path.forEach((p, i) => {
+          const x = px(p[0] + .5), y = py(p[1] + .5);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        ctx.strokeStyle = '#147d64';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        smoothPath.forEach((p, i) => {
+          const x = px(p[0] + .5), y = py(p[1] + .5);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      function marker(p, color, text) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(px(p[0] + .5), py(p[1] + .5), Math.max(5, cell * .3), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, px(p[0] + .5), py(p[1] + .5));
+      }
+      marker(scene.start, '#2f6fc7', 'S');
+      marker(scene.goal, '#c9861a', 'G');
+
+      if (carIndex !== null && smoothPath.length) {
+        const p = smoothPath[Math.min(carIndex, smoothPath.length - 1)];
+        const next = smoothPath[Math.min(carIndex + 1, smoothPath.length - 1)] || p;
+        const angle = Math.atan2(next[1] - p[1], next[0] - p[0]);
+        ctx.save();
+        ctx.translate(px(p[0] + .5), py(p[1] + .5));
+        ctx.rotate(angle);
+        ctx.fillStyle = 'rgba(20,125,100,.18)';
+        ctx.strokeStyle = '#147d64';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-cell * .8, -cell * .42, cell * 1.6, cell * .84, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function plan() {
+      const scene = scenarios[document.getElementById('scenario').value];
+      const result = astar(scene);
+      const simple = simplify(result.path);
+      const smoothPath = smooth(simple);
+      current = { scene, path: result.path, visited: result.visited, simple, smoothPath };
+      const length = result.path.reduce((sum, p, i) => i ? sum + dist(p, result.path[i - 1]) : 0, 0);
+      document.getElementById('pathLen').textContent = result.path.length ? length.toFixed(1) : '-';
+      document.getElementById('visitedCount').textContent = result.visited.length;
+      document.getElementById('turnCount').textContent = Math.max(0, simple.length - 2);
+      document.getElementById('planStatus').textContent = result.path.length ? '可行' : '失败';
+      draw();
+    }
+
+    function play() {
+      if (!current || !current.smoothPath.length || animating) return;
+      animating = true;
+      let i = 0;
+      function tick() {
+        draw(i);
+        i += 1;
+        if (i < current.smoothPath.length) requestAnimationFrame(tick);
+        else animating = false;
+      }
+      tick();
+    }
+
+    document.getElementById('planBtn').addEventListener('click', plan);
+    document.getElementById('playBtn').addEventListener('click', play);
+    document.getElementById('scenario').addEventListener('change', plan);
+    window.addEventListener('resize', () => draw());
+    plan();
+  </script>
+</body>
+</html>

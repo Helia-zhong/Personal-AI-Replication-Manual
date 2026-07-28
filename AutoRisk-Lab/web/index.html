@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoRisk Lab</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --ink: #172033;
+      --muted: #687386;
+      --panel: #fff;
+      --line: #dce3ee;
+      --blue: #2f6fc7;
+      --green: #0f8f6d;
+      --amber: #c98412;
+      --red: #c93445;
+      --road: #dce3ea;
+      --night: #182032;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; color: var(--ink); background: var(--bg); }
+    .shell { max-width: 1220px; margin: 0 auto; padding: 24px; }
+    header { background: #1a2f46; color: #fff; border-radius: 8px; padding: 24px; margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: 0; }
+    .subtitle { margin: 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.7; }
+    .layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    .panel-title { margin: 0 0 14px; font-size: 15px; font-weight: 750; }
+    .scene-list { display: grid; gap: 9px; }
+    .scene-btn { text-align: left; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 11px 12px; cursor: pointer; color: var(--ink); }
+    .scene-btn[aria-pressed="true"] { border-color: var(--blue); background: #edf4ff; }
+    .scene-btn strong { display: block; font-size: 13px; margin-bottom: 3px; }
+    .scene-btn span { color: var(--muted); font-size: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .metric { border-top: 3px solid var(--line); padding: 10px 4px 4px; min-height: 66px; }
+    .metric.blue { border-color: var(--blue); }
+    .metric.green { border-color: var(--green); }
+    .metric.red { border-color: var(--red); }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .metric strong { display: block; font-size: 22px; line-height: 1.2; }
+    .stage { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #f8fafc; }
+    svg { display: block; width: 100%; height: auto; }
+    .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 16px; margin-top: 16px; }
+    .block { border-top: 1px solid var(--line); padding-top: 12px; }
+    .block h3 { margin: 0 0 8px; font-size: 14px; }
+    .block p { margin: 0; line-height: 1.7; color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 8px 6px; }
+    th { color: var(--muted); font-size: 12px; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 750; }
+    .high { background: #fee2e2; color: var(--red); }
+    .medium { background: #fff4df; color: var(--amber); }
+    .low { background: #e9f8f1; color: var(--green); }
+    .eval-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .eval-cell { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; color: var(--muted); }
+    .eval-cell strong { display: block; color: var(--ink); font-size: 16px; margin-top: 4px; }
+    @media (max-width: 900px) {
+      .shell { padding: 14px; }
+      .layout, .content-grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      header { padding: 18px; }
+      h1 { font-size: 23px; }
+      .eval-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>AutoRisk Lab 行车场景风险分析平台</h1>
+      <p class="subtitle">以样例场景、对象标注、风险等级和问答输出为核心，展示一个可扩展的视觉语言模型风险理解工作台。</p>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">样例场景</h2>
+        <div class="scene-list" id="sceneList"></div>
+        <div class="block">
+          <h3>数据集评估</h3>
+          <div class="eval-grid" id="evalGrid"></div>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <h2 class="panel-title" id="sceneTitle">场景详情</h2>
+        <div class="metrics">
+          <div class="metric blue"><span>场景类型</span><strong id="sceneType">-</strong></div>
+          <div class="metric red"><span>标注风险</span><strong id="riskLevel">-</strong></div>
+          <div class="metric green"><span>模型预测</span><strong id="predRisk">-</strong></div>
+        </div>
+        <div class="stage" id="stage"></div>
+        <div class="content-grid">
+          <div>
+            <div class="block">
+              <h3>用户问题</h3>
+              <p id="question"></p>
+            </div>
+            <div class="block">
+              <h3>预期说明</h3>
+              <p id="expected"></p>
+            </div>
+            <div class="block">
+              <h3>模型输出</h3>
+              <p id="modelOutput"></p>
+            </div>
+          </div>
+          <div class="block">
+            <h3>目标标注</h3>
+            <table>
+              <thead><tr><th>目标</th><th>标签</th><th>风险</th></tr></thead>
+              <tbody id="objectTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const scenes = [
+      {
+        id: 'urban-crosswalk-001',
+        name: '城市路口行人横穿',
+        scene_type: 'urban',
+        weather: 'clear',
+        risk_level: 'high',
+        question: '当前画面中最需要驾驶员注意什么？',
+        expected_answer: '前方斑马线有行人横穿，同时右侧有电动车接近路口，应减速并准备停车。',
+        objects: [
+          { type: 'pedestrian', label: '横穿行人', x: 58, y: 46, w: 8, h: 18, risk: 'high' },
+          { type: 'ebike', label: '右侧电动车', x: 74, y: 58, w: 12, h: 10, risk: 'medium' },
+          { type: 'traffic_light', label: '信号灯', x: 47, y: 10, w: 7, h: 12, risk: 'low' }
+        ],
+        model_output: { risk_level: 'high', summary: '斑马线行人正在横穿，右侧还有电动车接近，应优先减速避让。', recommended_action: '减速到低速，观察行人完成通过后再继续行驶。' }
+      },
+      {
+        id: 'highway-follow-002',
+        name: '高速近距离跟车',
+        scene_type: 'highway',
+        weather: 'clear',
+        risk_level: 'medium',
+        question: '当前高速场景的主要风险是什么？',
+        expected_answer: '本车与前车距离偏近，且旁车道有车辆并行，应保持车距并避免急变道。',
+        objects: [
+          { type: 'vehicle', label: '前车', x: 48, y: 34, w: 18, h: 16, risk: 'medium' },
+          { type: 'vehicle', label: '左侧并行车辆', x: 20, y: 48, w: 20, h: 14, risk: 'medium' },
+          { type: 'lane', label: '车道线', x: 44, y: 0, w: 4, h: 100, risk: 'low' }
+        ],
+        model_output: { risk_level: 'medium', summary: '前车距离较近，左侧车辆并行，当前不适合快速变道。', recommended_action: '拉大跟车距离，保持车道稳定。' }
+      },
+      {
+        id: 'parking-reverse-003',
+        name: '停车场倒车盲区',
+        scene_type: 'parking',
+        weather: 'clear',
+        risk_level: 'high',
+        question: '倒车时应该重点观察哪里？',
+        expected_answer: '车辆后方右侧有低矮障碍物，左后侧有行人进入盲区，应停止倒车并二次确认。',
+        objects: [
+          { type: 'pedestrian', label: '左后侧行人', x: 24, y: 43, w: 9, h: 17, risk: 'high' },
+          { type: 'cone', label: '右后低矮障碍物', x: 68, y: 49, w: 8, h: 8, risk: 'medium' },
+          { type: 'vehicle', label: '本车后保险杠', x: 36, y: 50, w: 30, h: 9, risk: 'low' }
+        ],
+        model_output: { risk_level: 'high', summary: '后方存在行人和低矮障碍物，倒车路径不安全。', recommended_action: '立即停止倒车，确认盲区后再低速移动。' }
+      },
+      {
+        id: 'rain-night-004',
+        name: '雨夜低能见度道路',
+        scene_type: 'night',
+        weather: 'rain',
+        risk_level: 'medium',
+        question: '雨夜场景下有哪些风险？',
+        expected_answer: '路面反光强、能见度低，前方车辆尾灯可见但轮廓不清，应降低速度并增大安全距离。',
+        objects: [
+          { type: 'vehicle', label: '前方车辆', x: 52, y: 42, w: 16, h: 12, risk: 'medium' },
+          { type: 'road_reflection', label: '路面反光', x: 28, y: 62, w: 42, h: 12, risk: 'medium' },
+          { type: 'lane', label: '模糊车道线', x: 38, y: 0, w: 5, h: 100, risk: 'low' }
+        ],
+        model_output: { risk_level: 'medium', summary: '雨夜反光明显，前方车辆距离判断不稳定，需要降低速度。', recommended_action: '开启合适灯光，增大跟车距离，避免急刹和急转。' }
+      }
+    ];
+
+    let selected = scenes[0].id;
+
+    function riskClass(level) {
+      return level === 'high' ? 'high' : level === 'medium' ? 'medium' : 'low';
+    }
+
+    function renderSceneSvg(scene) {
+      const isNight = scene.scene_type === 'night';
+      const bg = isNight ? '#182032' : '#eef3f8';
+      const road = isNight ? '#2b3448' : '#dce3ea';
+      const lane = isNight ? '#f3d37a' : '#ffffff';
+      const boxes = scene.objects.map(obj => {
+        const color = obj.risk === 'high' ? '#c93445' : obj.risk === 'medium' ? '#c98412' : '#0f8f6d';
+        return `<g>
+          <rect x="${obj.x}" y="${obj.y}" width="${obj.w}" height="${obj.h}" fill="rgba(255,255,255,.12)" stroke="${color}" stroke-width="1.8" rx="1.6"/>
+          <text x="${obj.x}" y="${Math.max(8, obj.y - 3)}" font-size="4" fill="${color}">${obj.label}</text>
+        </g>`;
+      }).join('');
+      return `<svg viewBox="0 0 100 62" role="img" aria-label="${scene.name}">
+        <rect width="100" height="62" fill="${bg}"/>
+        <path d="M0 54 C24 40 38 33 100 28 L100 62 L0 62 Z" fill="${road}"/>
+        <path d="M0 43 C28 35 54 31 100 21" fill="none" stroke="${lane}" stroke-width="1.2" stroke-dasharray="5 4" opacity=".8"/>
+        <path d="M0 58 C22 47 50 41 100 36" fill="none" stroke="${lane}" stroke-width="1.2" opacity=".65"/>
+        <rect x="42" y="28" width="18" height="9" rx="2" fill="#2f6fc7" opacity=".82"/>
+        <circle cx="46" cy="38" r="2.2" fill="#172033"/>
+        <circle cx="56" cy="38" r="2.2" fill="#172033"/>
+        ${scene.scene_type === 'urban' ? '<rect x="42" y="44" width="30" height="5" fill="#fff" opacity=".75"/><path d="M42 44 h30" stroke="#172033" opacity=".2"/>' : ''}
+        ${scene.scene_type === 'parking' ? '<rect x="10" y="48" width="80" height="11" fill="#fff4d8" opacity=".9"/><path d="M20 48 v11 M40 48 v11 M60 48 v11 M80 48 v11" stroke="#c98412" stroke-width=".8"/>' : ''}
+        ${isNight ? '<circle cx="78" cy="9" r="10" fill="#f3d37a" opacity=".16"/><path d="M7 50 L43 34" stroke="#f3d37a" stroke-width="9" opacity=".12"/>' : ''}
+        ${boxes}
+      </svg>`;
+    }
+
+    function renderList() {
+      const list = document.getElementById('sceneList');
+      list.innerHTML = scenes.map(scene => `<button class="scene-btn" type="button" data-id="${scene.id}" aria-pressed="${scene.id === selected}">
+        <strong>${scene.name}</strong>
+        <span>${scene.scene_type} / ${scene.weather} / ${scene.risk_level}</span>
+      </button>`).join('');
+      list.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selected = btn.dataset.id;
+          render();
+        });
+      });
+    }
+
+    function evaluate() {
+      const total = scenes.length;
+      const correct = scenes.filter(scene => scene.risk_level === scene.model_output.risk_level).length;
+      const high = scenes.filter(scene => scene.risk_level === 'high');
+      const highHit = high.filter(scene => scene.model_output.risk_level === 'high').length;
+      return {
+        total,
+        accuracy: total ? correct / total : 0,
+        highRecall: high.length ? highHit / high.length : 0
+      };
+    }
+
+    function renderEval() {
+      const ev = evaluate();
+      document.getElementById('evalGrid').innerHTML = `
+        <div class="eval-cell">样例数<strong>${ev.total}</strong></div>
+        <div class="eval-cell">风险准确率<strong>${(ev.accuracy * 100).toFixed(0)}%</strong></div>
+        <div class="eval-cell">高风险召回<strong>${(ev.highRecall * 100).toFixed(0)}%</strong></div>
+      `;
+    }
+
+    function render() {
+      const scene = scenes.find(item => item.id === selected) || scenes[0];
+      renderList();
+      renderEval();
+      document.getElementById('sceneTitle').textContent = scene.name;
+      document.getElementById('sceneType').textContent = scene.scene_type;
+      document.getElementById('riskLevel').textContent = scene.risk_level;
+      document.getElementById('predRisk').textContent = scene.model_output.risk_level;
+      document.getElementById('stage').innerHTML = renderSceneSvg(scene);
+      document.getElementById('question').textContent = scene.question;
+      document.getElementById('expected').textContent = scene.expected_answer;
+      document.getElementById('modelOutput').textContent = `${scene.model_output.summary} 建议：${scene.model_output.recommended_action}`;
+      document.getElementById('objectTable').innerHTML = scene.objects.map(obj => `<tr>
+        <td>${obj.type}</td>
+        <td>${obj.label}</td>
+        <td><span class="badge ${riskClass(obj.risk)}">${obj.risk}</span></td>
+      </tr>`).join('');
+    }
+
+    render();
+  </script>
+</body>
+</html>

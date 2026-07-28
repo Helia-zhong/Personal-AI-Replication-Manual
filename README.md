@@ -1,45 +1,43 @@
 # Personal AI Replication Manual
 
-这个仓库用于整理个人 AI 产品与浏览器演示项目。当前主线是 AI 工程化、智能车辆、车辆控制与数据可视化。
+这个仓库用于整理 AI 产品原型、智能车辆仿真、车辆控制和数据可视化项目。每个重点项目都有独立目录、README 和可运行入口。
 
 ## 项目目录
 
 | 项目 | 简介 | 入口 |
 | --- | --- | --- |
 | AgentFlow Visualizer | LLM 工作流可视化、执行模拟与 Prompt 调试工具 | [AgentFlow-Visualizer/index.html](AgentFlow-Visualizer/index.html) |
-| AutoVision Copilot | 面向行车画面的 VLM 场景理解与风险问答演示 | [AutoVision-Copilot/index.html](AutoVision-Copilot/index.html) |
+| AutoVision Copilot | 行车画面的 VLM 场景理解与风险问答演示 | [AutoVision-Copilot/index.html](AutoVision-Copilot/index.html) |
 | PID Auto Tuning Dashboard | 线控转向 PID 参数调节、智能寻优与响应曲线对比 | [PID-Auto-Tuning-Dashboard/index.html](PID-Auto-Tuning-Dashboard/index.html) |
 | Auto Parking Trajectory Simulator | 五次多项式自动泊车轨迹规划与前端可视化 | [Auto-Parking-Trajectory-Simulator/index.html](Auto-Parking-Trajectory-Simulator/index.html) |
+| CAN Sentinel | 车辆 CAN / 传感器时序异常检测系统 | [CAN-Sentinel/web/index.html](CAN-Sentinel/web/index.html) |
+| AutoRisk Lab | 行车场景风险分析、标注样例与评估工作台 | [AutoRisk-Lab/web/index.html](AutoRisk-Lab/web/index.html) |
+| Vehicle Manual RAG Copilot | 车辆手册本地检索问答助手 | [Vehicle-Manual-RAG-Copilot/web/index.html](Vehicle-Manual-RAG-Copilot/web/index.html) |
+| Parking Planner Lab | A* 自动泊车路径规划、障碍物与动画回放实验室 | [Parking-Planner-Lab/web/index.html](Parking-Planner-Lab/web/index.html) |
 
 ## 快速运行
 
-四个重点项目都是单文件浏览器版，不需要安装依赖或启动服务。
+大多数浏览器项目可以直接打开对应目录下的 `index.html` 或 `web/index.html`。
 
-1. 克隆仓库：
+```bash
+git clone https://github.com/Helia-zhong/Personal-AI-Replication-Manual.git
+cd Personal-AI-Replication-Manual
+```
 
-   ```bash
-   git clone https://github.com/Helia-zhong/Personal-AI-Replication-Manual.git
-   cd Personal-AI-Replication-Manual
-   ```
-
-2. 直接用浏览器打开对应项目的 `index.html`。
+需要后端的项目在各自目录中提供 `backend/requirements.txt` 和启动说明。
 
 ## 仓库结构
 
 ```text
 .
 ├── AgentFlow-Visualizer/
-│   ├── index.html
-│   └── README.md
 ├── AutoVision-Copilot/
-│   ├── index.html
-│   └── README.md
 ├── PID-Auto-Tuning-Dashboard/
-│   ├── index.html
-│   └── README.md
 ├── Auto-Parking-Trajectory-Simulator/
-│   ├── index.html
-│   └── README.md
+├── CAN-Sentinel/
+├── AutoRisk-Lab/
+├── Vehicle-Manual-RAG-Copilot/
+├── Parking-Planner-Lab/
 ├── 01/
 ├── 02/
 ├── 03/
@@ -52,10 +50,9 @@
 
 ## 说明
 
-- 当前重点浏览器项目均为前端演示，用于展示产品交互、算法流程和可视化能力，不包含后端服务。
-- AgentFlow Visualizer 使用 Mermaid CDN 渲染流程图，打开时需要网络访问 CDN。
-- AutoVision Copilot 会在本地浏览器中读取用户上传的图片或视频首帧，演示问答结果为预设模拟响应。
-- PID Auto Tuning Dashboard 和 Auto Parking Trajectory Simulator 是浏览器端近似仿真，用于项目演示与技术说明。
+- 浏览器项目主要用于交互演示、算法流程说明和可视化展示。
+- 后端项目保留 Python / FastAPI 接口，便于后续接入真实数据或模型服务。
+- `01` 到 `05` 为早期项目目录，保留原始代码和说明。
 
 ## License
 

@@ -1,0 +1,78 @@
+[
+  {
+    "id": "urban-crosswalk-001",
+    "name": "城市路口行人横穿",
+    "scene_type": "urban",
+    "weather": "clear",
+    "risk_level": "high",
+    "question": "当前画面中最需要驾驶员注意什么？",
+    "expected_answer": "前方斑马线有行人横穿，同时右侧有电动车接近路口，应减速并准备停车。",
+    "objects": [
+      {"type": "pedestrian", "label": "横穿行人", "x": 58, "y": 46, "w": 8, "h": 18, "risk": "high"},
+      {"type": "ebike", "label": "右侧电动车", "x": 74, "y": 58, "w": 12, "h": 10, "risk": "medium"},
+      {"type": "traffic_light", "label": "信号灯", "x": 47, "y": 10, "w": 7, "h": 12, "risk": "low"}
+    ],
+    "model_output": {
+      "risk_level": "high",
+      "summary": "斑马线行人正在横穿，右侧还有电动车接近，应优先减速避让。",
+      "recommended_action": "减速到低速，观察行人完成通过后再继续行驶。"
+    }
+  },
+  {
+    "id": "highway-follow-002",
+    "name": "高速近距离跟车",
+    "scene_type": "highway",
+    "weather": "clear",
+    "risk_level": "medium",
+    "question": "当前高速场景的主要风险是什么？",
+    "expected_answer": "本车与前车距离偏近，且旁车道有车辆并行，应保持车距并避免急变道。",
+    "objects": [
+      {"type": "vehicle", "label": "前车", "x": 48, "y": 34, "w": 18, "h": 16, "risk": "medium"},
+      {"type": "vehicle", "label": "左侧并行车辆", "x": 20, "y": 48, "w": 20, "h": 14, "risk": "medium"},
+      {"type": "lane", "label": "车道线", "x": 44, "y": 0, "w": 4, "h": 100, "risk": "low"}
+    ],
+    "model_output": {
+      "risk_level": "medium",
+      "summary": "前车距离较近，左侧车辆并行，当前不适合快速变道。",
+      "recommended_action": "拉大跟车距离，保持车道稳定。"
+    }
+  },
+  {
+    "id": "parking-reverse-003",
+    "name": "停车场倒车盲区",
+    "scene_type": "parking",
+    "weather": "clear",
+    "risk_level": "high",
+    "question": "倒车时应该重点观察哪里？",
+    "expected_answer": "车辆后方右侧有低矮障碍物，左后侧有行人进入盲区，应停止倒车并二次确认。",
+    "objects": [
+      {"type": "pedestrian", "label": "左后侧行人", "x": 24, "y": 43, "w": 9, "h": 17, "risk": "high"},
+      {"type": "cone", "label": "右后低矮障碍物", "x": 68, "y": 49, "w": 8, "h": 8, "risk": "medium"},
+      {"type": "vehicle", "label": "本车后保险杠", "x": 36, "y": 50, "w": 30, "h": 9, "risk": "low"}
+    ],
+    "model_output": {
+      "risk_level": "high",
+      "summary": "后方存在行人和低矮障碍物，倒车路径不安全。",
+      "recommended_action": "立即停止倒车，确认盲区后再低速移动。"
+    }
+  },
+  {
+    "id": "rain-night-004",
+    "name": "雨夜低能见度道路",
+    "scene_type": "night",
+    "weather": "rain",
+    "risk_level": "medium",
+    "question": "雨夜场景下有哪些风险？",
+    "expected_answer": "路面反光强、能见度低，前方车辆尾灯可见但轮廓不清，应降低速度并增大安全距离。",
+    "objects": [
+      {"type": "vehicle", "label": "前方车辆", "x": 52, "y": 42, "w": 16, "h": 12, "risk": "medium"},
+      {"type": "road_reflection", "label": "路面反光", "x": 28, "y": 62, "w": 42, "h": 12, "risk": "medium"},
+      {"type": "lane", "label": "模糊车道线", "x": 38, "y": 0, "w": 5, "h": 100, "risk": "low"}
+    ],
+    "model_output": {
+      "risk_level": "medium",
+      "summary": "雨夜反光明显，前方车辆距离判断不稳定，需要降低速度。",
+      "recommended_action": "开启合适灯光，增大跟车距离，避免急刹和急转。"
+    }
+  }
+]

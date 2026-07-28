@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vehicle Manual RAG Copilot</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --panel: #fff;
+      --line: #ddd8cc;
+      --blue: #2f6fc7;
+      --green: #0f8f6d;
+      --amber: #c98412;
+      --dark: #263326;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; color: var(--ink); background: var(--bg); }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    header { background: var(--dark); color: #fff; border-radius: 8px; padding: 24px; margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: 0; }
+    .subtitle { margin: 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.7; }
+    .layout { display: grid; grid-template-columns: 350px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    .panel-title { margin: 0 0 14px; font-size: 15px; font-weight: 750; }
+    textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: inherit; resize: vertical; color: var(--ink); }
+    button { border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); padding: 10px 12px; cursor: pointer; font: inherit; font-weight: 700; }
+    button.primary { background: var(--green); border-color: var(--green); color: #fff; width: 100%; margin-top: 10px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .chip { font-size: 12px; padding: 7px 9px; }
+    .answer { background: #f8faf6; border: 1px solid var(--line); border-radius: 8px; padding: 16px; line-height: 1.8; white-space: pre-wrap; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .metric { border-top: 3px solid var(--line); padding: 10px 4px 4px; min-height: 66px; }
+    .metric.blue { border-color: var(--blue); }
+    .metric.green { border-color: var(--green); }
+    .metric.amber { border-color: var(--amber); }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .metric strong { display: block; font-size: 22px; line-height: 1.2; }
+    .source { border-top: 1px solid var(--line); padding: 12px 0; }
+    .source:first-child { border-top: none; }
+    .source h3 { margin: 0 0 6px; font-size: 14px; }
+    .source p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 750; background: #e9f8f1; color: var(--green); }
+    .manual-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    @media (max-width: 860px) {
+      .shell { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      header { padding: 18px; }
+      h1 { font-size: 23px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>Vehicle Manual RAG Copilot 车辆手册问答助手</h1>
+      <p class="subtitle">从本地手册片段中检索相关内容，回答车辆报警、辅助驾驶和使用注意事项，并保留引用来源。</p>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">输入问题</h2>
+        <textarea id="query">胎压报警怎么办？</textarea>
+        <button class="primary" id="askBtn" type="button">检索并回答</button>
+        <div class="chips" id="chips"></div>
+        <div class="source">
+          <h3>知识库章节</h3>
+          <ul class="manual-list" id="manualList"></ul>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <h2 class="panel-title">回答结果</h2>
+        <div class="metrics">
+          <div class="metric green"><span>置信度</span><strong id="confidence">-</strong></div>
+          <div class="metric blue"><span>引用数</span><strong id="sourceCount">-</strong></div>
+          <div class="metric amber"><span>最高分</span><strong id="topScore">-</strong></div>
+        </div>
+        <div class="answer" id="answerBox"></div>
+        <div class="source">
+          <h3>引用来源</h3>
+          <div id="sources"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const chunks = [
+      { title: '胎压报警', text: '当仪表显示胎压报警时，应先降低车速并避免急转向或急制动。将车辆停放在安全位置后检查四个轮胎是否漏气、鼓包或被异物扎入。若轮胎外观正常，可使用胎压表测量胎压，并按照驾驶员侧门框标签建议值补气。补气后需要在中控系统中执行胎压复位或重新学习。' },
+      { title: '低压蓄电池报警', text: '低压蓄电池报警通常表示 12V 电池电压偏低或充电系统异常。若车辆仍可启动，应关闭非必要用电设备，并尽快检查电池接线、发电机或 DC-DC 转换器状态。若车辆无法启动，不建议反复点火，应联系道路救援。' },
+      { title: '自适应巡航', text: '自适应巡航用于在高速或快速路场景下维持设定速度和跟车距离。驾驶员需要保持对方向盘和路况的监控。雨雪、急弯、拥堵加塞或前方静止目标可能影响系统判断，此时应主动接管。' },
+      { title: '车道保持', text: '车道保持辅助依赖摄像头识别道路标线。当车道线模糊、强光照射、雨雪天气或施工改道时，系统可能退出或误判。该功能不能替代驾驶员控制方向，双手应保持在方向盘上。' },
+      { title: '自动泊车', text: '自动泊车功能会搜索可用车位并规划入库路径。使用时应低速行驶，确认车位周围没有行人、低矮障碍物和移动目标。系统执行泊车时，驾驶员仍需观察周围环境，并准备随时制动。' },
+      { title: '充电注意事项', text: '连接充电枪前应确认接口干燥、无异物、无明显破损。充电过程中若闻到异味、看到烟雾或听到异常声音，应立即停止充电并远离车辆。雨天充电应使用符合标准的充电设备。' },
+      { title: '冷却液温度过高', text: '如果仪表提示冷却液温度过高，应尽快减速并选择安全位置停车。不要立即打开高温状态下的冷却液壶盖，以免烫伤。等待温度下降后检查冷却液液位，并联系维修人员排查风扇、水泵或管路问题。' },
+      { title: '制动系统报警', text: '制动系统报警可能与制动液液位、制动助力、ABS 或电子稳定系统有关。若制动踏板变硬、制动距离变长或车辆跑偏，应停止继续行驶并联系维修。若只是短暂提示，也应尽快进行诊断。' }
+    ];
+    const suggestions = ['胎压报警怎么办？', '自动泊车时要注意什么？', '自适应巡航什么时候需要接管？', '冷却液温度过高怎么处理？', '低压蓄电池报警还能开吗？'];
+
+    function tokenize(text) {
+      const lower = text.toLowerCase();
+      const words = lower.match(/[a-z0-9]+/g) || [];
+      const chars = Array.from(lower).filter(ch => /[\u4e00-\u9fff]/.test(ch));
+      const bigrams = [];
+      for (let i = 0; i < chars.length - 1; i += 1) bigrams.push(chars[i] + chars[i + 1]);
+      return words.concat(chars, bigrams);
+    }
+
+    function median(values) {
+      return values.sort((a, b) => a - b)[Math.floor(values.length / 2)] || 0;
+    }
+
+    function buildIdf(indexed) {
+      const df = {};
+      indexed.forEach(chunk => {
+        [...new Set(chunk.tokens)].forEach(token => df[token] = (df[token] || 0) + 1);
+      });
+      const total = indexed.length;
+      return Object.fromEntries(Object.entries(df).map(([token, count]) => [token, Math.log((total + 1) / (count + 1)) + 1]));
+    }
+
+    function retrieve(query) {
+      const indexed = chunks.map(chunk => ({ ...chunk, tokens: tokenize(chunk.title + chunk.text) }));
+      const idf = buildIdf(indexed);
+      const qTokens = tokenize(query);
+      const qSet = [...new Set(qTokens)];
+      return indexed.map(chunk => {
+        let score = 0;
+        for (const token of qSet) {
+          const hits = chunk.tokens.filter(t => t === token).length;
+          if (hits) score += hits * (idf[token] || 1);
+        }
+        score = score / Math.max(chunk.tokens.length, 1) ** 0.45;
+        return { title: chunk.title, text: chunk.text, score };
+      }).filter(hit => hit.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+
+    function answer(query) {
+      const hits = retrieve(query);
+      if (!hits.length || hits[0].score < 0.2) {
+        return {
+          answer: '手册资料中没有找到足够相关的内容。请换一种问法，或补充车辆型号、报警提示和具体场景。',
+          confidence: 'low',
+          sources: hits
+        };
+      }
+      let text = `根据《${hits[0].title}》部分：${hits[0].text}`;
+      if (hits[1]) text += `\n\n另可参考《${hits[1].title}》部分，以确认相关系统是否同时报警。`;
+      return { answer: text, confidence: hits[0].score >= 1 ? 'high' : 'medium', sources: hits };
+    }
+
+    function render() {
+      const query = document.getElementById('query').value.trim();
+      const result = answer(query);
+      document.getElementById('answerBox').textContent = result.answer;
+      document.getElementById('confidence').textContent = result.confidence;
+      document.getElementById('sourceCount').textContent = result.sources.length;
+      document.getElementById('topScore').textContent = result.sources[0] ? result.sources[0].score.toFixed(2) : '0.00';
+      document.getElementById('sources').innerHTML = result.sources.map(source => `<div class="source">
+        <h3>${source.title} <span class="badge">score ${source.score.toFixed(2)}</span></h3>
+        <p>${source.text}</p>
+      </div>`).join('') || '<p>暂无引用。</p>';
+    }
+
+    document.getElementById('manualList').innerHTML = chunks.map(chunk => `<li>${chunk.title}</li>`).join('');
+    document.getElementById('chips').innerHTML = suggestions.map(item => `<button class="chip" type="button">${item}</button>`).join('');
+    document.querySelectorAll('.chip').forEach(btn => btn.addEventListener('click', () => {
+      document.getElementById('query').value = btn.textContent;
+      render();
+    }));
+    document.getElementById('askBtn').addEventListener('click', render);
+    render();
+  </script>
+</body>
+</html>

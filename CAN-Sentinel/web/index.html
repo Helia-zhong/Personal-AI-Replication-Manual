@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAN Sentinel</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --ink: #152033;
+      --muted: #667085;
+      --panel: #fff;
+      --line: #d9e0ea;
+      --blue: #2563eb;
+      --green: #0f9f6e;
+      --amber: #c47b11;
+      --red: #c93445;
+      --dark: #172033;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .shell { max-width: 1220px; margin: 0 auto; padding: 24px; }
+    header {
+      background: var(--dark);
+      color: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.2; letter-spacing: 0; }
+    .subtitle { margin: 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.7; }
+    .layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .panel-title { margin: 0 0 14px; font-size: 15px; font-weight: 750; }
+    .control { margin-bottom: 14px; }
+    label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 7px; }
+    select, button {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
+    button { cursor: pointer; font-weight: 700; }
+    button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .status {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric { border-top: 3px solid var(--line); padding: 10px 4px 4px; min-height: 70px; }
+    .metric.blue { border-color: var(--blue); }
+    .metric.green { border-color: var(--green); }
+    .metric.amber { border-color: var(--amber); }
+    .metric.red { border-color: var(--red); }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .metric strong { display: block; font-size: 22px; line-height: 1.2; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+    .legend i { display: inline-block; width: 22px; height: 3px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+    canvas {
+      width: 100%;
+      height: 360px;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 9px 6px; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; font-weight: 650; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .high { background: #fee2e2; color: var(--red); }
+    .medium { background: #fff4df; color: var(--amber); }
+    .low { background: #e9f8f1; color: var(--green); }
+    .note { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    @media (max-width: 880px) {
+      .shell { padding: 14px; }
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      canvas { height: 310px; }
+    }
+    @media (max-width: 520px) {
+      header { padding: 18px; }
+      h1 { font-size: 23px; }
+      .metrics, .button-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>CAN Sentinel 车辆传感器异常检测系统</h1>
+      <p class="subtitle">生成车辆 CAN 时序数据，识别电压跌落、踏板冲突、转向响应失配和温度异常，并将诊断结果以数据大屏方式呈现。</p>
+    </header>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">数据流配置</h2>
+        <div class="control">
+          <label for="scenario">异常场景</label>
+          <select id="scenario">
+            <option value="normal">正常行驶</option>
+            <option value="voltage_drop">电压跌落</option>
+            <option value="pedal_conflict">油门/制动冲突</option>
+            <option value="steering_mismatch">转向与横摆失配</option>
+            <option value="thermal_rise">冷却液温度升高</option>
+            <option value="sensor_spike">传感器尖峰</option>
+          </select>
+        </div>
+        <div class="button-grid">
+          <button class="primary" id="runBtn" type="button">分析数据流</button>
+          <button id="nextBtn" type="button">换一组样本</button>
+        </div>
+        <div class="status" id="statusBox">等待分析。</div>
+        <p class="note">前端内置同构检测逻辑，可脱离后端直接运行。后端版本位于 `backend/`，用于 API 接入和批量分析。</p>
+      </aside>
+
+      <section class="panel">
+        <h2 class="panel-title">诊断看板</h2>
+        <div class="metrics">
+          <div class="metric blue"><span>样本帧数</span><strong id="frameCount">-</strong></div>
+          <div class="metric amber"><span>异常事件</span><strong id="eventCount">-</strong></div>
+          <div class="metric red"><span>最高风险分</span><strong id="riskScore">-</strong></div>
+          <div class="metric green"><span>当前状态</span><strong id="riskLevel">-</strong></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--blue)"></i>车速</span>
+          <span><i style="background:var(--green)"></i>电池电压</span>
+          <span><i style="background:var(--amber)"></i>制动</span>
+          <span><i style="background:var(--red)"></i>异常时间点</span>
+        </div>
+        <canvas id="chart" aria-label="车辆 CAN 时序曲线"></canvas>
+        <table>
+          <thead>
+            <tr><th>时间</th><th>等级</th><th>触发规则</th><th>关键快照</th></tr>
+          </thead>
+          <tbody id="eventsBody"></tbody>
+        </table>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    let seed = 42;
+    const signals = ['speed_kph', 'rpm', 'throttle_pct', 'brake_pct', 'steering_deg', 'yaw_rate_dps', 'battery_v', 'coolant_temp_c'];
+    const scenarioEl = document.getElementById('scenario');
+    const chart = document.getElementById('chart');
+
+    function rngFactory(baseSeed) {
+      let s = baseSeed >>> 0;
+      return () => {
+        s = (1664525 * s + 1013904223) >>> 0;
+        return s / 4294967296;
+      };
+    }
+
+    function noise(rand, amp) {
+      return (rand() * 2 - 1) * amp;
+    }
+
+    function generateTrace(scenario, count = 180, baseSeed = 42) {
+      const rand = rngFactory(baseSeed);
+      const frames = [];
+      for (let i = 0; i < count; i += 1) {
+        const t = +(i * 0.2).toFixed(2);
+        let speed = 42 + 12 * Math.sin(i / 26) + noise(rand, 1.2);
+        let throttle = 28 + 18 * Math.sin(i / 35 + 0.8) + noise(rand, 2.5);
+        let brake = Math.max(0, 8 * Math.sin(i / 21 - 1.4) + noise(rand, 1.0));
+        const steering = 9 * Math.sin(i / 18) + noise(rand, 1.2);
+        let yaw = steering * 0.18 + noise(rand, 0.8);
+        let rpm = 850 + speed * 35 + throttle * 7 + noise(rand, 50);
+        let battery = 13.6 + noise(rand, 0.08);
+        let coolant = 82 + 2.5 * Math.sin(i / 45) + noise(rand, 0.3);
+
+        if (scenario === 'voltage_drop' && i >= 70 && i <= 112) battery -= 2.2 + 0.35 * Math.sin(i / 7);
+        if (scenario === 'pedal_conflict' && i >= 82 && i <= 124) {
+          throttle = 72 + noise(rand, 4);
+          brake = 46 + noise(rand, 3);
+        }
+        if (scenario === 'steering_mismatch' && i >= 60 && i <= 118) yaw = -steering * 0.08 + noise(rand, 0.5);
+        if (scenario === 'thermal_rise' && i >= 65) coolant += (i - 64) * 0.14;
+        if (scenario === 'sensor_spike' && [48, 49, 96, 97, 144].includes(i)) {
+          rpm += 1400 + noise(rand, 90);
+          speed += 12 + rand() * 6;
+        }
+
+        frames.push({
+          timestamp_s: t,
+          speed_kph: +Math.max(0, speed).toFixed(2),
+          rpm: +Math.max(0, rpm).toFixed(1),
+          throttle_pct: +Math.min(100, Math.max(0, throttle)).toFixed(1),
+          brake_pct: +Math.min(100, Math.max(0, brake)).toFixed(1),
+          steering_deg: +steering.toFixed(2),
+          yaw_rate_dps: +yaw.toFixed(2),
+          battery_v: +battery.toFixed(2),
+          coolant_temp_c: +coolant.toFixed(2)
+        });
+      }
+      return frames;
+    }
+
+    function median(values) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    function detect(frames) {
+      const centers = Object.fromEntries(signals.map(signal => [signal, median(frames.map(f => f[signal]))]));
+      const scales = Object.fromEntries(signals.map(signal => {
+        const center = centers[signal];
+        const mad = median(frames.map(f => Math.abs(f[signal] - center))) || 1;
+        return [signal, mad];
+      }));
+      const events = [];
+      for (const frame of frames) {
+        const rules = [];
+        let score = 0;
+        for (const signal of signals) {
+          const z = Math.abs(frame[signal] - centers[signal]) / (1.4826 * scales[signal]);
+          if (z > 4.8) {
+            rules.push(`${signal} robust z-score ${z.toFixed(1)}`);
+            score += Math.min(z, 12);
+          }
+        }
+        if (frame.battery_v < 12.0) { rules.push('battery voltage below 12.0 V'); score += 8; }
+        if (frame.throttle_pct > 55 && frame.brake_pct > 25) { rules.push('throttle and brake conflict'); score += 10; }
+        if (Math.abs(frame.steering_deg) > 8 && Math.abs(frame.yaw_rate_dps) < 1.0) { rules.push('steering angle without matching yaw response'); score += 7; }
+        if (frame.coolant_temp_c > 95) { rules.push('coolant temperature above 95 C'); score += 9; }
+        if (frame.rpm > 4200 && frame.speed_kph < 65) { rules.push('rpm spike inconsistent with vehicle speed'); score += 7; }
+        if (rules.length) {
+          events.push({
+            timestamp_s: frame.timestamp_s,
+            severity: score >= 15 ? 'high' : score >= 8 ? 'medium' : 'low',
+            score: +score.toFixed(2),
+            rules,
+            snapshot: frame
+          });
+        }
+      }
+      const high = events.filter(e => e.severity === 'high').length;
+      const medium = events.filter(e => e.severity === 'medium').length;
+      return {
+        summary: {
+          risk: high ? 'high' : medium ? 'medium' : events.length ? 'low' : 'normal',
+          score: Math.max(0, ...events.map(e => e.score)),
+          events: events.length
+        },
+        events
+      };
+    }
+
+    function setupCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = chart.getBoundingClientRect();
+      chart.width = Math.round(rect.width * ratio);
+      chart.height = Math.round(rect.height * ratio);
+      const ctx = chart.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function drawLine(ctx, points, color, x, y) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      points.forEach((point, i) => {
+        if (i === 0) ctx.moveTo(x(i), y(point));
+        else ctx.lineTo(x(i), y(point));
+      });
+      ctx.stroke();
+    }
+
+    function renderChart(frames, events) {
+      const { ctx, width, height } = setupCanvas();
+      ctx.clearRect(0, 0, width, height);
+      const left = 50, top = 20, right = 18, bottom = 42;
+      const plotW = width - left - right;
+      const plotH = height - top - bottom;
+      const x = i => left + i / Math.max(frames.length - 1, 1) * plotW;
+      const y = value => top + (1 - value) * plotH;
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 5; i += 1) {
+        const yy = top + plotH * i / 5;
+        ctx.beginPath();
+        ctx.moveTo(left, yy);
+        ctx.lineTo(left + plotW, yy);
+        ctx.stroke();
+      }
+      for (let i = 0; i <= 6; i += 1) {
+        const xx = left + plotW * i / 6;
+        ctx.beginPath();
+        ctx.moveTo(xx, top);
+        ctx.lineTo(xx, top + plotH);
+        ctx.stroke();
+      }
+      const speed = frames.map(f => f.speed_kph / 75);
+      const battery = frames.map(f => (f.battery_v - 10.8) / 3.2);
+      const brake = frames.map(f => f.brake_pct / 100);
+      drawLine(ctx, speed, '#2563eb', x, y);
+      drawLine(ctx, battery, '#0f9f6e', x, y);
+      drawLine(ctx, brake, '#c47b11', x, y);
+      ctx.strokeStyle = '#c93445';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 5]);
+      for (const event of events) {
+        const idx = Math.round(event.timestamp_s / 0.2);
+        const xx = x(idx);
+        ctx.beginPath();
+        ctx.moveTo(xx, top);
+        ctx.lineTo(xx, top + plotH);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#667085';
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+      ctx.fillText('归一化信号', left, 14);
+      ctx.fillText('时间', left + plotW - 24, top + plotH + 28);
+    }
+
+    function renderTable(events) {
+      const body = document.getElementById('eventsBody');
+      const rows = events.slice(0, 12).map(event => {
+        const s = event.snapshot;
+        return `<tr>
+          <td>${event.timestamp_s.toFixed(1)}s</td>
+          <td><span class="badge ${event.severity}">${event.severity}</span></td>
+          <td>${event.rules.slice(0, 2).join('<br>')}</td>
+          <td>speed ${s.speed_kph} kph<br>battery ${s.battery_v} V<br>brake ${s.brake_pct}%</td>
+        </tr>`;
+      }).join('');
+      body.innerHTML = rows || '<tr><td colspan="4">未检测到异常事件。</td></tr>';
+    }
+
+    function analyze() {
+      const frames = generateTrace(scenarioEl.value, 180, seed);
+      const result = detect(frames);
+      document.getElementById('frameCount').textContent = frames.length;
+      document.getElementById('eventCount').textContent = result.summary.events;
+      document.getElementById('riskScore').textContent = result.summary.score.toFixed(1);
+      document.getElementById('riskLevel').textContent = result.summary.risk;
+      document.getElementById('statusBox').textContent = `当前场景：${scenarioEl.options[scenarioEl.selectedIndex].text}。检测到 ${result.summary.events} 个异常事件，风险等级为 ${result.summary.risk}。`;
+      renderChart(frames, result.events);
+      renderTable(result.events);
+    }
+
+    document.getElementById('runBtn').addEventListener('click', analyze);
+    document.getElementById('nextBtn').addEventListener('click', () => { seed += 17; analyze(); });
+    scenarioEl.addEventListener('change', analyze);
+    window.addEventListener('resize', analyze);
+    analyze();
+  </script>
+</body>
+</html>
