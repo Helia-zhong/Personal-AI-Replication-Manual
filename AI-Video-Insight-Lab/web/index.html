@@ -479,6 +479,7 @@
       <button id="prevButton">Prev</button>
       <button id="nextButton">Next</button>
       <button id="resetButton">Reset</button>
+      <button id="exportButton">Export report</button>
     </div>
   </header>
 
@@ -639,6 +640,8 @@
       closing: getVar("--closing")
     };
 
+    const STORAGE_KEY = "ai-video-insight-lab-state-v2";
+
     function getVar(name) {
       return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     }
@@ -651,6 +654,109 @@
       timer: null,
       currentSceneIndex: 0
     };
+
+    function persistState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          clipId: state.clipId,
+          currentTime: state.currentTime,
+          speed: state.speed
+        }));
+      } catch (error) {
+        // Persistence is best-effort only.
+      }
+    }
+
+    function loadPersistedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const saved = JSON.parse(raw);
+        const clip = clipById(saved.clipId);
+        if (!clip || clip.id !== saved.clipId) return null;
+        return {
+          clipId: clip.id,
+          currentTime: Math.max(0, Math.min(clip.duration_sec, Number(saved.currentTime) || 0)),
+          speed: [1, 1.5, 2].includes(Number(saved.speed)) ? Number(saved.speed) : 1
+        };
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function downloadText(filename, content) {
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function buildReport(clip, inspection) {
+      const metricPercent = value => `${Math.round(value * 100)}%`;
+      const lines = [
+        `# ${clip.title}`,
+        "",
+        `- Duration: ${clip.duration_sec}s`,
+        `- Format: ${clip.format}`,
+        `- Theme: ${clip.theme}`,
+        `- Overall quality: ${metricPercent(inspection.metrics.overall_quality)}`,
+        "",
+        "## Summary",
+        clip.description,
+        "",
+        "## Metrics",
+        "| Metric | Value |",
+        "| --- | ---: |",
+        `| Scene count | ${inspection.metrics.scene_count} |`,
+        `| Transcript coverage | ${metricPercent(inspection.metrics.transcript_coverage)} |`,
+        `| OCR coverage | ${metricPercent(inspection.metrics.ocr_coverage)} |`,
+        `| Audio coverage | ${metricPercent(inspection.metrics.audio_coverage)} |`,
+        `| Highlight ratio | ${metricPercent(inspection.metrics.highlight_ratio)} |`,
+        `| Highlight fit | ${metricPercent(inspection.metrics.highlight_fit)} |`,
+        `| Scene balance | ${metricPercent(inspection.metrics.scene_balance)} |`,
+        `| Transcript density | ${inspection.metrics.transcript_density} chars/sec |`,
+        "",
+        "## Issues",
+      ];
+      if (inspection.issues.length) {
+        inspection.issues.forEach(issue => {
+          lines.push(`- ${issue.severity}: ${issue.type} - ${issue.message}`);
+        });
+      } else {
+        lines.push("- No major issues detected.");
+      }
+      lines.push(
+        "",
+        "## Recommendations",
+        ...inspection.recommendations.map(item => `- ${item}`),
+        "",
+        "## Scenes",
+        "| Scene | Window | Duration | Visual | Transcript |",
+        "| --- | --- | ---: | --- | --- |"
+      );
+      clip.scenes.forEach(scene => {
+        lines.push(
+          `| ${scene.id} | ${scene.start}s-${scene.end}s | ${scene.end - scene.start}s | ${scene.visual} | ${scene.transcript || "none"} |`
+        );
+      });
+      lines.push("", "## Highlights");
+      clip.highlights.forEach(item => {
+        lines.push(`- ${item.start}s-${item.end}s: ${item.reason}`);
+      });
+      return lines.join("\n") + "\n";
+    }
+
+    function exportReport() {
+      const clip = currentClip();
+      const inspection = inspectClip(clip);
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      downloadText(`ai-video-insight-${clip.id}-${stamp}.md`, buildReport(clip, inspection));
+    }
 
     function clipById(id) {
       return clips.find(clip => clip.id === id) || clips[0];
@@ -910,7 +1016,9 @@
       renderTimeline(clip, state.currentSceneIndex);
       renderAnalysis(clip, inspection);
       document.getElementById("clipSelect").value = clip.id;
+      document.getElementById("speedSelect").value = String(state.speed);
       document.getElementById("scrubber").value = state.currentTime;
+      persistState();
     }
 
     function stopPlayback() {
@@ -924,7 +1032,8 @@
     function startPlayback() {
       if (state.timer) clearInterval(state.timer);
       state.playing = true;
-      const speed = Number(document.getElementById("speedSelect").value);
+      state.speed = Number(document.getElementById("speedSelect").value);
+      const speed = state.speed;
       state.timer = setInterval(() => {
         const clip = currentClip();
         state.currentTime = clampTime(clip, state.currentTime + Math.max(1, speed));
@@ -988,6 +1097,7 @@
       document.getElementById("nextButton").addEventListener("click", nextScene);
       document.getElementById("resetButton").addEventListener("click", resetClip);
       document.getElementById("speedSelect").addEventListener("change", () => {
+        state.speed = Number(document.getElementById("speedSelect").value);
         if (state.playing) {
           stopPlayback();
           startPlayback();
@@ -995,10 +1105,19 @@
           render();
         }
       });
+      document.getElementById("exportButton").addEventListener("click", exportReport);
     }
 
     populateSelectors();
+    const savedState = loadPersistedState();
+    if (savedState) {
+      state.clipId = savedState.clipId;
+      state.currentTime = savedState.currentTime;
+      state.speed = savedState.speed;
+      document.getElementById("speedSelect").value = String(state.speed);
+    }
     render();
+    window.addEventListener("beforeunload", persistState);
   </script>
 </body>
 </html>

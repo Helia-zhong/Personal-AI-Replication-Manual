@@ -1,19 +1,19 @@
 # AI Connect Four Arena
 
-AI Connect Four Arena 是一个可对战、可分析的四子棋 AI 游戏项目。它把经典棋类对抗、极小化极大搜索和局面评分放到同一个工作台里，既能直接游玩，也能作为 AI 策略分析样例。
+一个可对战、可分析、可导出报告的四子棋 AI 项目。
 
-## 功能
+## 你可以做什么
 
-- 支持人机对战，AI 采用 minimax + alpha-beta 搜索。
-- 提供难度切换、提示走法和局面分析。
-- 支持加载预设挑战局面，查看推荐落子与候选评分。
-- 提供命令行分析脚本，可输出单局面或样例集 JSON。
-- 提供 FastAPI 接口，便于后续接入更多棋类或策略实验。
-- 提供浏览器看板，可直接打开 `web/index.html` 开始对战。
+- 人机对战
+- Minimax + alpha-beta 搜索
+- 挑战样例加载与局面分析
+- 本地刷新后恢复当前对局
+- 导出 Markdown 局面报告
+- Python CLI 和 FastAPI 接口
 
-## 快速运行
+## 快速开始
 
-### 浏览器对战
+### 浏览器
 
 直接打开：
 
@@ -21,15 +21,7 @@ AI Connect Four Arena 是一个可对战、可分析的四子棋 AI 游戏项目
 web/index.html
 ```
 
-### 命令行分析
-
-```bash
-cd AI-Connect-Four-Arena
-python scripts/analyze_board.py
-python scripts/analyze_board.py --sample-id block-threat
-```
-
-### 后端接口
+### 后端
 
 ```bash
 cd AI-Connect-Four-Arena/backend
@@ -37,19 +29,38 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-启动后访问：
+### CLI
 
-```text
-http://127.0.0.1:8080/health
-http://127.0.0.1:8080/api/samples
-http://127.0.0.1:8080/api/analyze/block-threat
+```bash
+cd AI-Connect-Four-Arena
+python scripts/analyze_board.py --sample-id block-threat
+python scripts/analyze_board.py --sample-id block-threat --format markdown
 ```
 
-## 项目结构
+## API
+
+- `GET /health`
+- `GET /api/samples`
+- `GET /api/analyze/{sample_id}?depth=4`
+- `GET /api/recommend?board=42_digits&depth=4`
+- `GET /api/move?board=42_digits&column=3`
+- `GET /api/report/{sample_id}?depth=4`
+- `GET /api/export?board=42_digits&depth=4&title=Custom`
+
+## Board Key
+
+局面用 42 位数字表示：
+
+- `0` = 空位
+- `1` = 人类
+- `2` = AI
+
+从上到下、从左到右依次拼接。
+
+## 目录
 
 ```text
 AI-Connect-Four-Arena/
-├── README.md
 ├── backend/
 │   ├── app.py
 │   ├── connect_four.py
@@ -62,20 +73,13 @@ AI-Connect-Four-Arena/
     └── index.html
 ```
 
-## 分析维度
+## 测试
 
-- `best_move`: 当前局面 AI 的推荐落子。
-- `candidate_scores`: 各列候选分数。
-- `threats`: 立即获胜或必须阻挡的威胁列。
-- `overall`: 局面综合评分。
-
-## 可扩展方向
-
-- 增加开局库、残局库和更深层的搜索。
-- 加入双人热座模式或观战模式。
-- 输出对局回放和走法注释。
-- 改造成其他棋类或策略对抗游戏。
+```bash
+cd AI-Connect-Four-Arena/backend
+python -m unittest discover -s tests
+```
 
 ## License
 
-本项目随仓库使用 MIT License，详见根目录 [LICENSE](../LICENSE)。
+MIT，见仓库根目录 `LICENSE`。

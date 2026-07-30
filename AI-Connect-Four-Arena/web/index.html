@@ -452,6 +452,7 @@
       <button id="resetButton">Reset</button>
       <button id="hintButton">Hint</button>
       <button id="aiMoveButton" class="primary">AI Move</button>
+      <button id="exportButton">Export report</button>
     </div>
   </header>
 
@@ -503,6 +504,7 @@
     const COLS = 7;
     const HUMAN = 1;
     const AI = 2;
+    const STORAGE_KEY = "ai-connect-four-arena-state-v2";
     const samples = [
       {
         id: "opening-center",
@@ -579,6 +581,113 @@
     };
 
     let aiTimer = null;
+
+    function serializeBoard(board) {
+      return board.flat().join("");
+    }
+
+    function deserializeBoard(boardKey) {
+      const digits = String(boardKey || "").trim().split("").map(Number);
+      if (digits.length !== ROWS * COLS || digits.some(cell => !Number.isInteger(cell) || cell < 0 || cell > 2)) {
+        throw new Error("Board key must contain 42 digits.");
+      }
+      return Array.from({ length: ROWS }, (_, row) => digits.slice(row * COLS, row * COLS + COLS));
+    }
+
+    function boardToAscii(board) {
+      const symbols = { 0: ".", 1: "H", 2: "A" };
+      return ["      1 2 3 4 5 6 7", ...board.map(row => `      ${row.map(cell => symbols[cell] || "?").join(" ")}`)].join("\n");
+    }
+
+    function downloadText(filename, content) {
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function persistState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          boardKey: serializeBoard(state.board),
+          currentPlayer: state.currentPlayer,
+          depth: state.depth,
+          gameOver: state.gameOver,
+          winner: state.winner,
+          history: state.history,
+          selectedSampleId: state.selectedSampleId,
+          undoStack: state.undoStack.map(serializeBoard)
+        }));
+      } catch (error) {
+        // Persistence is a convenience only.
+      }
+    }
+
+    function loadPersistedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const saved = JSON.parse(raw);
+        const board = deserializeBoard(saved.boardKey);
+        const undoStack = Array.isArray(saved.undoStack) ? saved.undoStack.map(deserializeBoard) : [];
+        return {
+          board,
+          currentPlayer: saved.currentPlayer === AI ? AI : HUMAN,
+          depth: [2, 3, 4, 5].includes(Number(saved.depth)) ? Number(saved.depth) : 4,
+          gameOver: Boolean(saved.gameOver),
+          winner: [0, 1, 2].includes(Number(saved.winner)) ? Number(saved.winner) : 0,
+          history: Array.isArray(saved.history) ? saved.history.filter(item => typeof item === "string").slice(0, 10) : [],
+          selectedSampleId: samples.some(sample => sample.id === saved.selectedSampleId) ? saved.selectedSampleId : samples[0].id,
+          undoStack
+        };
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function buildReport() {
+      const matchedSample = samples.find(sample => serializeBoard(sample.board) === serializeBoard(state.board));
+      const analysis = state.analysis || analyzeBoard(state.board, state.depth);
+      const winnerLabel = state.gameOver ? (state.winner === AI ? "AI" : state.winner === HUMAN ? "Human" : "Draw") : "In progress";
+      return [
+        "# AI Connect Four Arena Session Report",
+        "",
+        `- Sample: ${matchedSample ? matchedSample.title : "Custom session"}`,
+        `- Current turn: ${winnerLabel}`,
+        `- Depth: ${state.depth}`,
+        `- Board key: \`${serializeBoard(state.board)}\``,
+        "",
+        "## Board",
+        "```text",
+        boardToAscii(state.board),
+        "```",
+        "",
+        "## Analysis",
+        `- Recommendation: ${analysis.recommendation}`,
+        `- Best move: ${analysis.best_move.column === null ? "None" : `Column ${analysis.best_move.column + 1}`}`,
+        `- Score: ${analysis.best_move.score}`,
+        `- Threats: human ${analysis.threats.human_threats.length ? analysis.threats.human_threats.map(col => col + 1).join(", ") : "none"}, AI ${analysis.threats.ai_wins.length ? analysis.threats.ai_wins.map(col => col + 1).join(", ") : "none"}`,
+        "",
+        "## Candidate Scores",
+        "| Column | Score | Immediate win |",
+        "| --- | ---: | --- |",
+        ...analysis.candidate_scores.map(item => `| ${item.column + 1} | ${item.score} | ${item.immediate_win ? "yes" : "no"} |`),
+        "",
+        "## History",
+        ...(state.history.length ? state.history.map(entry => `- ${entry}`) : ["- No moves recorded yet."]),
+        ""
+      ].join("\n");
+    }
+
+    function exportReport() {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      downloadText(`ai-connect-four-report-${stamp}.md`, buildReport());
+    }
 
     function createBoard() {
       return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
@@ -960,6 +1069,7 @@
       });
 
       renderBoard();
+      persistState();
     }
 
     function resetGame() {
@@ -976,6 +1086,7 @@
     document.getElementById("resetButton").addEventListener("click", resetGame);
     document.getElementById("hintButton").addEventListener("click", askHint);
     document.getElementById("aiMoveButton").addEventListener("click", aiMove);
+    document.getElementById("exportButton").addEventListener("click", exportReport);
     document.getElementById("undoButton").addEventListener("click", undoMove);
     document.getElementById("playSampleButton").addEventListener("click", () => loadSample(activeSample()));
     document.getElementById("sampleSelect").innerHTML = samples.map(sample => `<option value="${sample.id}">${sample.title}</option>`).join("");
@@ -983,9 +1094,26 @@
       state.selectedSampleId = document.getElementById("sampleSelect").value;
       loadSample(activeSample());
     });
-    state.selectedSampleId = samples[0].id;
-    document.getElementById("sampleSelect").value = state.selectedSampleId;
-    resetGame();
+    const savedState = loadPersistedState();
+    if (savedState) {
+      state.board = savedState.board;
+      state.currentPlayer = savedState.currentPlayer;
+      state.depth = savedState.depth;
+      state.gameOver = savedState.gameOver;
+      state.winner = savedState.winner;
+      state.history = savedState.history;
+      state.selectedSampleId = savedState.selectedSampleId;
+      state.undoStack = savedState.undoStack;
+      document.getElementById("depthSelect").value = String(state.depth);
+      document.getElementById("sampleSelect").value = state.selectedSampleId;
+      render();
+    } else {
+      state.selectedSampleId = samples[0].id;
+      document.getElementById("sampleSelect").value = state.selectedSampleId;
+      resetGame();
+    }
+
+    window.addEventListener("beforeunload", persistState);
   </script>
 </body>
 </html>

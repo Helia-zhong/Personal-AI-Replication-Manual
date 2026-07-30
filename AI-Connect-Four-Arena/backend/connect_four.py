@@ -25,6 +25,19 @@ def get_sample(sample_id: str) -> dict[str, Any]:
     raise KeyError(f"Sample not found: {sample_id}")
 
 
+def serialize_board(board: list[list[int]]) -> str:
+    return "".join(str(cell) for row in board for cell in row)
+
+
+def deserialize_board(board_key: str) -> list[list[int]]:
+    digits = [int(char) for char in str(board_key).strip() if char.isdigit()]
+    if len(digits) != ROWS * COLS:
+        raise ValueError("Board key must contain 42 digits.")
+    if any(cell not in {0, 1, 2} for cell in digits):
+        raise ValueError("Board key may only contain digits 0, 1, and 2.")
+    return [digits[index : index + COLS] for index in range(0, ROWS * COLS, COLS)]
+
+
 def clone_board(board: list[list[int]]) -> list[list[int]]:
     return [row[:] for row in board]
 
@@ -83,6 +96,20 @@ def winning_move(board: list[list[int]], piece: int) -> bool:
 
 def board_full(board: list[list[int]]) -> bool:
     return all(cell != 0 for cell in board[0])
+
+
+def board_to_ascii(board: list[list[int]]) -> str:
+    symbols = {0: ".", HUMAN: "H", AI: "A"}
+    lines = ["      1 2 3 4 5 6 7"]
+    for row in board:
+        lines.append("      " + " ".join(symbols.get(cell, "?") for cell in row))
+    return "\n".join(lines)
+
+
+def _format_columns(columns: list[int]) -> str:
+    if not columns:
+        return "none"
+    return ", ".join(str(col + 1) for col in columns)
 
 
 def terminal_state(board: list[list[int]]) -> dict[str, Any]:
@@ -222,6 +249,8 @@ def analyze_board(board: list[list[int]], depth: int = 4) -> dict[str, Any]:
 
     return {
         "board": board,
+        "board_key": serialize_board(board),
+        "board_ascii": board_to_ascii(board),
         "depth": depth,
         "terminal": terminal,
         "best_move": best_move,
@@ -235,11 +264,59 @@ def analyze_board(board: list[list[int]], depth: int = 4) -> dict[str, Any]:
     }
 
 
+def build_report(title: str, analysis: dict[str, Any], history: list[str] | None = None) -> str:
+    best_move = analysis["best_move"]
+    terminal = analysis["terminal"]
+    winner = terminal["winner"]
+    winner_label = "AI" if winner == AI else "Human" if winner == HUMAN else "Draw" if terminal["terminal"] else "In progress"
+    lines = [
+        f"# {title}",
+        "",
+        f"- Depth: {analysis['depth']}",
+        f"- Overall score: {analysis['overall']}",
+        f"- Recommendation: {analysis['recommendation']}",
+        f"- Board key: `{analysis['board_key']}`",
+        "",
+        "## Board",
+        "```text",
+        analysis["board_ascii"],
+        "```",
+        "",
+        "## Signals",
+        f"- AI winning columns: {_format_columns(analysis['threats']['ai_wins'])}",
+        f"- Human threat columns: {_format_columns(analysis['threats']['human_threats'])}",
+        f"- Terminal: {terminal['terminal']} ({winner_label})",
+        "",
+        "## Best Move",
+        f"- Column: {best_move['column'] + 1 if best_move['column'] is not None else 'None'}",
+        f"- Score: {best_move['score']}",
+        f"- Immediate win: {'yes' if best_move['immediate_win'] else 'no'}",
+        "",
+        "## Candidate Scores",
+        "| Column | Score | Immediate win |",
+        "| --- | ---: | --- |",
+    ]
+    for item in analysis["candidate_scores"]:
+        lines.append(
+            f"| {item['column'] + 1} | {item['score']} | {'yes' if item['immediate_win'] else 'no'} |"
+        )
+    if history:
+        lines.extend(
+            [
+                "",
+                "## History",
+                *[f"- {entry}" for entry in history],
+            ]
+        )
+    return "\n".join(lines).strip() + "\n"
+
+
 def apply_move(board: list[list[int]], col: int, piece: int) -> dict[str, Any]:
     trial = clone_board(board)
     row = drop_piece(trial, col, piece)
     return {
         "board": trial,
+        "board_key": serialize_board(trial),
         "row": row,
         "winner": AI if winning_move(trial, AI) else HUMAN if winning_move(trial, HUMAN) else 0,
         "terminal": terminal_state(trial),

@@ -5,10 +5,11 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from connect_four import AI, HUMAN, analyze_board, apply_move, get_sample, load_samples, new_board
+from connect_four import AI, analyze_board, apply_move, build_report, deserialize_board, get_sample, load_samples
 
 
 app = FastAPI(title="AI Connect Four Arena", version="1.0.0")
@@ -21,10 +22,7 @@ app.add_middleware(
 
 
 def parse_board(board_key: str) -> list[list[int]]:
-    digits = [int(char) for char in board_key.strip() if char.isdigit()]
-    if len(digits) != 42:
-        raise ValueError("Board key must contain 42 digits.")
-    return [digits[index : index + 7] for index in range(0, 42, 7)]
+    return deserialize_board(board_key)
 
 
 @app.get("/health")
@@ -70,6 +68,26 @@ def move(board: str, column: int, piece: int = Query(default=AI, ge=1, le=2)) ->
         return apply_move(parsed, column, piece)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/report/{sample_id}", response_class=PlainTextResponse)
+def report_sample(sample_id: str, depth: int = Query(default=4, ge=1, le=6)) -> str:
+    try:
+        sample = get_sample(sample_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    analysis = analyze_board(sample["board"], depth=depth)
+    return build_report(sample["title"], analysis, history=[sample["note"]])
+
+
+@app.get("/api/export", response_class=PlainTextResponse)
+def export_board(board: str, depth: int = Query(default=4, ge=1, le=6), title: str = "Custom Position") -> str:
+    try:
+        parsed = parse_board(board)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    analysis = analyze_board(parsed, depth=depth)
+    return build_report(title, analysis)
 
 
 if __name__ == "__main__":

@@ -5,10 +5,11 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-from video_lab import get_clip, inspect_all, inspect_clip, load_clips
+from video_lab import clip_report_markdown, get_clip, inspect_all, inspect_clip, load_clips
 
 
 app = FastAPI(title="AI Video Insight Lab", version="1.0.0")
@@ -41,6 +42,15 @@ def inspect_one(clip_id: str) -> dict:
         return inspect_clip(get_clip(clip_id))
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/clips/{clip_id}/report", response_class=PlainTextResponse)
+def report_one(clip_id: str) -> str:
+    try:
+        clip = get_clip(clip_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return clip_report_markdown(clip)
 
 
 if __name__ == "__main__":

@@ -212,6 +212,77 @@ def build_timeline(clip: dict[str, Any]) -> list[dict[str, Any]]:
     return timeline
 
 
+def clip_report_markdown(clip: dict[str, Any], inspection: dict[str, Any] | None = None) -> str:
+    inspection = inspection or inspect_clip(clip)
+    metrics = inspection["metrics"]
+    pct = lambda value: f"{round(value * 100)}%"
+    lines = [
+        f"# {clip['title']}",
+        "",
+        f"- Duration: {clip['duration_sec']}s",
+        f"- Format: {clip['format']}",
+        f"- Theme: {clip['theme']}",
+        f"- Overall quality: {pct(metrics['overall_quality'])}",
+        "",
+        "## Summary",
+        clip["description"],
+        "",
+        "## Metrics",
+        "| Metric | Value |",
+        "| --- | ---: |",
+    ]
+    metric_labels = [
+        ("Scene count", metrics["scene_count"]),
+        ("Transcript coverage", pct(metrics["transcript_coverage"])),
+        ("OCR coverage", pct(metrics["ocr_coverage"])),
+        ("Audio coverage", pct(metrics["audio_coverage"])),
+        ("Highlight ratio", pct(metrics["highlight_ratio"])),
+        ("Highlight fit", pct(metrics["highlight_fit"])),
+        ("Scene balance", pct(metrics["scene_balance"])),
+        ("Transcript density", metrics["transcript_density"]),
+    ]
+    for label, value in metric_labels:
+        lines.append(f"| {label} | {value} |")
+
+    lines.extend(
+        [
+            "",
+            "## Issues",
+        ]
+    )
+    if inspection["issues"]:
+        for issue in inspection["issues"]:
+            lines.append(f"- {issue['severity']}: {issue['type']} - {issue['message']}")
+    else:
+        lines.append("- No major issues detected.")
+
+    lines.extend(
+        [
+            "",
+            "## Recommendations",
+            *[f"- {item}" for item in inspection["recommendations"]],
+            "",
+            "## Scenes",
+            "| Scene | Window | Duration | Visual | Transcript |",
+            "| --- | --- | ---: | --- | --- |",
+        ]
+    )
+    for scene in inspection["scenes"]:
+        transcript = scene["transcript"] or "none"
+        lines.append(
+            f"| {scene['id']} | {scene['start']}s-{scene['end']}s | {scene['duration_sec']}s | {scene['visual']} | {transcript} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Highlights",
+        ]
+    )
+    for item in clip["highlights"]:
+        lines.append(f"- {item['start']}s-{item['end']}s: {item['reason']}")
+    return "\n".join(lines).strip() + "\n"
+
+
 def inspect_all() -> dict[str, Any]:
     clips = [inspect_clip(clip) for clip in load_clips()]
     aggregate = {
