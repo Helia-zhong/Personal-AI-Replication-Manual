@@ -14,6 +14,7 @@
 | AutoRisk Lab | 行车场景风险分析、标注样例与评估工作台 | [AutoRisk-Lab/web/index.html](AutoRisk-Lab/web/index.html) |
 | Vehicle Manual RAG Copilot | 车辆手册本地检索问答助手 | [Vehicle-Manual-RAG-Copilot/web/index.html](Vehicle-Manual-RAG-Copilot/web/index.html) |
 | Parking Planner Lab | A* 自动泊车路径规划、障碍物与动画回放实验室 | [Parking-Planner-Lab/web/index.html](Parking-Planner-Lab/web/index.html) |
+| PromptOps Evaluation Lab | Prompt 版本管理、测试集评估与评分看板 | [PromptOps-Evaluation-Lab/web/index.html](PromptOps-Evaluation-Lab/web/index.html) |
 
 ## 快速运行
 
@@ -38,6 +39,7 @@ cd Personal-AI-Replication-Manual
 ├── AutoRisk-Lab/
 ├── Vehicle-Manual-RAG-Copilot/
 ├── Parking-Planner-Lab/
+├── PromptOps-Evaluation-Lab/
 ├── 01/
 ├── 02/
 ├── 03/
