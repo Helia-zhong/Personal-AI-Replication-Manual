@@ -1,0 +1,218 @@
+[
+  {
+    "id": "support-qa-playbook",
+    "title": "Support QA Playbook",
+    "task_type": "qa",
+    "allowed_labels": ["answerable", "abstain"],
+    "description": "客服问答与拒答样本，用于检查来源覆盖和回答边界。",
+    "samples": [
+      {
+        "id": "qa-001",
+        "split": "train",
+        "label": "answerable",
+        "instruction": "How do I reset MFA after I changed my phone number?",
+        "response": "Go to account settings, verify your identity, and register the new device before disabling the old one.",
+        "source": "support policy note: account recovery steps require identity verification and device re-enrollment.",
+        "tags": ["account", "mfa", "support"]
+      },
+      {
+        "id": "qa-002",
+        "split": "train",
+        "label": "abstain",
+        "instruction": "Can you reveal internal admin API keys?",
+        "response": "I cannot help retrieve secrets or private keys. Please use the approved secret management flow.",
+        "source": "security policy: secrets must never be exposed in assistant responses.",
+        "tags": ["security", "refusal"]
+      },
+      {
+        "id": "qa-003",
+        "split": "valid",
+        "label": "answerable",
+        "instruction": "What should I do if my invoice payment failed twice?",
+        "response": "You can retry with a verified card, check whether the payment method is enabled, and contact billing support if the issue repeats.",
+        "source": "",
+        "tags": ["billing", "support"]
+      },
+      {
+        "id": "qa-004",
+        "split": "test",
+        "label": "abstain",
+        "instruction": "Can you share a customer's personal email address?",
+        "response": "Please send the full account name and I will look it up for you.",
+        "source": "privacy policy: personal contact details must not be disclosed.",
+        "tags": ["privacy", "refusal"]
+      },
+      {
+        "id": "qa-005",
+        "split": "test",
+        "label": "answerable",
+        "instruction": "How do I reset MFA after I changed my phone number?",
+        "response": "Go to account settings, verify your identity, and register the new device before disabling the old one.",
+        "source": "support policy note: account recovery steps require identity verification and device re-enrollment.",
+        "tags": ["account", "mfa", "duplicate"]
+      }
+    ]
+  },
+  {
+    "id": "contract-extraction-kit",
+    "title": "Contract Extraction Kit",
+    "task_type": "extraction",
+    "allowed_labels": ["structured"],
+    "description": "合同与政策字段抽取样本，检查结构化输出和来源完整性。",
+    "samples": [
+      {
+        "id": "ex-001",
+        "split": "train",
+        "label": "structured",
+        "instruction": "Extract the renewal date, payment terms, and termination notice from the clause.",
+        "response": "{\"renewal_date\":\"2027-03-01\",\"payment_terms\":\"net 30\",\"termination_notice\":\"45 days\"}",
+        "source": "contract clause: renewal on 2027-03-01, payment due net 30, termination requires 45 days notice.",
+        "tags": ["json", "contracts"]
+      },
+      {
+        "id": "ex-002",
+        "split": "train",
+        "label": "structured",
+        "instruction": "Extract the vendor, price ceiling, and approval owner from the procurement note.",
+        "response": "- vendor: Northwind\n- price ceiling: 120000\n- approval owner: finance lead",
+        "source": "procurement note: Northwind, ceiling 120000, approval owner finance lead.",
+        "tags": ["procurement", "format_mismatch"]
+      },
+      {
+        "id": "ex-003",
+        "split": "valid",
+        "label": "structured",
+        "instruction": "Extract the claim amount, deductible, and insurer from the policy excerpt.",
+        "response": "{\"claim_amount\":\"8000\",\"deductible\":\"500\",\"insurer\":\"Blue Harbor\"}",
+        "source": "",
+        "tags": ["insurance", "missing_source"]
+      },
+      {
+        "id": "ex-004",
+        "split": "test",
+        "label": "structured",
+        "instruction": "Extract the renewal date, payment terms, and termination notice from the clause.",
+        "response": "{\"renewal_date\":\"2027-03-01\",\"payment_terms\":\"net 30\",\"termination_notice\":\"45 days\"}",
+        "source": "contract clause: renewal on 2027-03-01, payment due net 30, termination requires 45 days notice.",
+        "tags": ["json", "duplicate"]
+      },
+      {
+        "id": "ex-005",
+        "split": "test",
+        "label": "structured",
+        "instruction": "Extract the support window, escalation channel, and SLA target from the service note.",
+        "response": "{\"support_window\":\"24x7\",\"escalation_channel\":\"pager\",\"sla_target\":\"2 hours\"} The note is summarized above.",
+        "source": "service note: support is 24x7, escalations use pager, SLA target is 2 hours.",
+        "tags": ["json", "verbose"]
+      }
+    ]
+  },
+  {
+    "id": "meeting-summary-set",
+    "title": "Meeting Summary Set",
+    "task_type": "summarization",
+    "allowed_labels": ["concise"],
+    "description": "会议纪要摘要样本，用于检查压缩率和行动项保留情况。",
+    "samples": [
+      {
+        "id": "sum-001",
+        "split": "train",
+        "label": "concise",
+        "instruction": "Summarize the meeting notes into a short action-focused recap.",
+        "response": "The team agreed to ship the revised onboarding flow next Friday, and engineering will confirm the final analytics events before release.",
+        "source": "meeting notes: shipping revised onboarding flow next Friday; engineering to confirm final analytics events.",
+        "tags": ["summary", "good"]
+      },
+      {
+        "id": "sum-002",
+        "split": "train",
+        "label": "concise",
+        "instruction": "Summarize the meeting notes into a short action-focused recap.",
+        "response": "The team discussed the onboarding flow, the analytics schema, the QA checklist, the release risk matrix, the customer communication plan, and the follow-up review schedule in detail.",
+        "source": "meeting notes: shipping revised onboarding flow next Friday; engineering to confirm final analytics events.",
+        "tags": ["summary", "too_long"]
+      },
+      {
+        "id": "sum-003",
+        "split": "valid",
+        "label": "concise",
+        "instruction": "Summarize the architecture review in one paragraph.",
+        "response": "The review confirmed the cache layer should be split from the API service, and the team will prototype the new boundary before the next demo.",
+        "source": "",
+        "tags": ["missing_source"]
+      },
+      {
+        "id": "sum-004",
+        "split": "test",
+        "label": "concise",
+        "instruction": "Summarize the meeting notes into a short action-focused recap.",
+        "response": "The team agreed to ship the revised onboarding flow next Friday, and engineering will confirm the final analytics events before release.",
+        "source": "meeting notes: shipping revised onboarding flow next Friday; engineering to confirm final analytics events.",
+        "tags": ["duplicate", "leakage"]
+      },
+      {
+        "id": "sum-005",
+        "split": "test",
+        "label": "concise",
+        "instruction": "Summarize the roadmap discussion with action items only.",
+        "response": "Action items: lock the Q3 launch scope, draft the partner brief, and schedule a design review.",
+        "source": "roadmap discussion: lock Q3 scope, draft partner brief, schedule design review.",
+        "tags": ["good"]
+      }
+    ]
+  },
+  {
+    "id": "intent-classification-pack",
+    "title": "Intent Classification Pack",
+    "task_type": "classification",
+    "allowed_labels": ["billing", "technical", "account", "sales"],
+    "description": "用户意图分类样本，用于检查标签一致性和跨 split 泄漏。",
+    "samples": [
+      {
+        "id": "cls-001",
+        "split": "train",
+        "label": "billing",
+        "instruction": "My latest subscription charge looks wrong.",
+        "response": "billing",
+        "source": "labeled by support triage team after manual review.",
+        "tags": ["billing"]
+      },
+      {
+        "id": "cls-002",
+        "split": "train",
+        "label": "technical",
+        "instruction": "The dashboard keeps crashing when I open reports.",
+        "response": "account",
+        "source": "labeled by support triage team after manual review.",
+        "tags": ["mismatch"]
+      },
+      {
+        "id": "cls-003",
+        "split": "valid",
+        "label": "account",
+        "instruction": "I need to change the email address on my profile.",
+        "response": "account",
+        "source": "labeled by support triage team after manual review.",
+        "tags": ["account"]
+      },
+      {
+        "id": "cls-004",
+        "split": "test",
+        "label": "sales",
+        "instruction": "Can someone explain the enterprise plan pricing?",
+        "response": "sales, billing",
+        "source": "labeled by support triage team after manual review.",
+        "tags": ["ambiguous"]
+      },
+      {
+        "id": "cls-005",
+        "split": "test",
+        "label": "billing",
+        "instruction": "My latest subscription charge looks wrong.",
+        "response": "billing",
+        "source": "labeled by support triage team after manual review.",
+        "tags": ["duplicate", "leakage"]
+      }
+    ]
+  }
+]

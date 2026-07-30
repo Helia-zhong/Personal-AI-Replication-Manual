@@ -12,6 +12,7 @@
 | Agent Run Monitor | AI Agent 运行轨迹、工具调用、重试和成本观测 | [Agent-Run-Monitor/web/index.html](Agent-Run-Monitor/web/index.html) |
 | AI Content QA Workbench | AI 生成内容声明审查、引用覆盖和风险分级 | [AI-Content-QA-Workbench/web/index.html](AI-Content-QA-Workbench/web/index.html) |
 | Model Router Sandbox | 多模型路由策略、成本延迟质量权衡与候选排序 | [Model-Router-Sandbox/web/index.html](Model-Router-Sandbox/web/index.html) |
+| AI Dataset Curation Lab | AI 数据集质检、重复检测、泄漏检查与样本评分 | [AI-Dataset-Curation-Lab/web/index.html](AI-Dataset-Curation-Lab/web/index.html) |
 | AutoVision Copilot | 行车画面的 VLM 场景理解与风险问答演示 | [AutoVision-Copilot/index.html](AutoVision-Copilot/index.html) |
 | PID Auto Tuning Dashboard | 线控转向 PID 参数调节、智能寻优与响应曲线对比 | [PID-Auto-Tuning-Dashboard/index.html](PID-Auto-Tuning-Dashboard/index.html) |
 | Auto Parking Trajectory Simulator | 五次多项式自动泊车轨迹规划与前端可视化 | [Auto-Parking-Trajectory-Simulator/index.html](Auto-Parking-Trajectory-Simulator/index.html) |
@@ -41,6 +42,7 @@ cd Personal-AI-Replication-Manual
 ├── Agent-Run-Monitor/
 ├── AI-Content-QA-Workbench/
 ├── Model-Router-Sandbox/
+├── AI-Dataset-Curation-Lab/
 ├── AutoVision-Copilot/
 ├── PID-Auto-Tuning-Dashboard/
 ├── Auto-Parking-Trajectory-Simulator/
