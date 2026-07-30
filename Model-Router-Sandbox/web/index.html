@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model Router Sandbox</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #647086;
+      --line: #d9e0eb;
+      --panel: #ffffff;
+      --bg: #f5f7fb;
+      --green: #21835f;
+      --blue: #315fd1;
+      --amber: #d48624;
+      --red: #c74b4b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    header {
+      padding: 26px clamp(18px, 4vw, 48px) 18px;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 40px);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 780px;
+    }
+
+    select {
+      min-height: 38px;
+      min-width: 260px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 0 12px;
+      font: inherit;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 22px auto 42px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .metric,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 16px 34px rgba(43, 52, 80, 0.08);
+    }
+
+    .metric {
+      min-height: 92px;
+      padding: 14px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .value {
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 18px;
+      min-width: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 11px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+    }
+
+    .score {
+      color: var(--blue);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .reason-list {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .rejected {
+      display: grid;
+      gap: 10px;
+    }
+
+    .reject-item {
+      border-left: 4px solid var(--amber);
+      border-radius: 7px;
+      padding: 10px 12px;
+      background: #fff8ea;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      header,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      select {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Model Router Sandbox</h1>
+      <p class="subtitle">模型路由策略实验：根据任务质量、成本、延迟、上下文长度和隐私约束选择合适模型。</p>
+    </div>
+    <select id="taskSelect"></select>
+  </header>
+
+  <main>
+    <section class="metrics" id="metrics"></section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>候选模型评分</h2>
+        <canvas id="scoreChart" width="920" height="420"></canvas>
+      </div>
+      <div class="panel">
+        <h2>推荐理由</h2>
+        <ul class="reason-list" id="reasons"></ul>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>候选列表</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>模型</th>
+              <th>评分</th>
+              <th>成本</th>
+              <th>延迟</th>
+            </tr>
+          </thead>
+          <tbody id="candidateTable"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>被过滤模型</h2>
+        <div class="rejected" id="rejected"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const models = [
+      { id: "fast-mini", name: "Fast Mini", provider: "cloud", privacy_mode: "standard", context_window: 64000, latency_ms_p95: 900, input_cost_per_1k: 0.00015, output_cost_per_1k: 0.0006, safety_score: 0.78, quality: { classification: 0.86, extraction: 0.82, summarization: 0.78, reasoning: 0.66, content_qa: 0.72 } },
+      { id: "balanced-pro", name: "Balanced Pro", provider: "cloud", privacy_mode: "enterprise", context_window: 128000, latency_ms_p95: 1800, input_cost_per_1k: 0.0012, output_cost_per_1k: 0.0048, safety_score: 0.88, quality: { classification: 0.91, extraction: 0.9, summarization: 0.89, reasoning: 0.84, content_qa: 0.87 } },
+      { id: "deep-reasoner", name: "Deep Reasoner", provider: "cloud", privacy_mode: "enterprise", context_window: 96000, latency_ms_p95: 4200, input_cost_per_1k: 0.004, output_cost_per_1k: 0.016, safety_score: 0.93, quality: { classification: 0.9, extraction: 0.88, summarization: 0.9, reasoning: 0.95, content_qa: 0.92 } },
+      { id: "long-context", name: "Long Context", provider: "cloud", privacy_mode: "enterprise", context_window: 512000, latency_ms_p95: 3600, input_cost_per_1k: 0.002, output_cost_per_1k: 0.006, safety_score: 0.86, quality: { classification: 0.86, extraction: 0.88, summarization: 0.92, reasoning: 0.82, content_qa: 0.84 } },
+      { id: "local-private", name: "Local Private", provider: "local", privacy_mode: "private", context_window: 32000, latency_ms_p95: 2600, input_cost_per_1k: 0.00005, output_cost_per_1k: 0.0002, safety_score: 0.74, quality: { classification: 0.8, extraction: 0.76, summarization: 0.73, reasoning: 0.62, content_qa: 0.7 } }
+    ];
+
+    const tasks = [
+      { id: "task-001", name: "客服工单意图分类", task_type: "classification", risk_level: "low", context_tokens: 1800, expected_output_tokens: 120, latency_budget_ms: 1500, max_budget_usd: 0.003, privacy: "standard", min_quality: 0.78 },
+      { id: "task-002", name: "合同条款 JSON 抽取", task_type: "extraction", risk_level: "high", context_tokens: 22000, expected_output_tokens: 900, latency_budget_ms: 3500, max_budget_usd: 0.08, privacy: "restricted", min_quality: 0.86 },
+      { id: "task-003", name: "长文档摘要", task_type: "summarization", risk_level: "medium", context_tokens: 180000, expected_output_tokens: 1400, latency_budget_ms: 5200, max_budget_usd: 0.42, privacy: "enterprise", min_quality: 0.84 },
+      { id: "task-004", name: "复杂方案推理", task_type: "reasoning", risk_level: "high", context_tokens: 16000, expected_output_tokens: 1800, latency_budget_ms: 6000, max_budget_usd: 0.18, privacy: "enterprise", min_quality: 0.9 },
+      { id: "task-005", name: "发布内容风险质检", task_type: "content_qa", risk_level: "medium", context_tokens: 9000, expected_output_tokens: 900, latency_budget_ms: 3000, max_budget_usd: 0.06, privacy: "enterprise", min_quality: 0.82 }
+    ];
+
+    const privacyRank = { standard: 1, enterprise: 2, private: 3 };
+    const riskRank = { low: 1, medium: 2, high: 3 };
+
+    function estimateCost(model, task) {
+      return task.context_tokens / 1000 * model.input_cost_per_1k + task.expected_output_tokens / 1000 * model.output_cost_per_1k;
+    }
+
+    function rejectReasons(model, task) {
+      const reasons = [];
+      const required = task.privacy === "restricted" ? "private" : task.privacy;
+      if (privacyRank[model.privacy_mode] < privacyRank[required]) reasons.push("隐私模式不足");
+      if (model.context_window < task.context_tokens) reasons.push("上下文窗口不足");
+      if (estimateCost(model, task) > task.max_budget_usd) reasons.push("超过预算上限");
+      if ((model.quality[task.task_type] || 0) < task.min_quality) reasons.push("任务质量低于要求");
+      return reasons;
+    }
+
+    function score(model, task) {
+      const quality = model.quality[task.task_type] || 0;
+      const cost = estimateCost(model, task);
+      const latency = Math.min(task.latency_budget_ms / model.latency_ms_p95, 1);
+      const costScore = Math.min(task.max_budget_usd / Math.max(cost, 0.000001), 1);
+      const context = Math.min(model.context_window / task.context_tokens, 4) / 4;
+      const weights = riskRank[task.risk_level] >= 3
+        ? { quality: 0.42, safety: 0.28, latency: 0.1, cost: 0.1, context: 0.1 }
+        : { quality: 0.4, safety: 0.18, latency: 0.18, cost: 0.17, context: 0.07 };
+      const total = quality * weights.quality + model.safety_score * weights.safety + latency * weights.latency + costScore * weights.cost + context * weights.context;
+      const reasons = [`${task.task_type} 质量分 ${quality.toFixed(2)}。`];
+      if (model.privacy_mode !== "standard") reasons.push(`满足 ${task.privacy} 隐私要求。`);
+      if (model.context_window >= task.context_tokens * 2) reasons.push("上下文窗口余量充足。");
+      if (cost <= task.max_budget_usd * 0.5) reasons.push("成本低于预算的一半。");
+      if (latency >= 1) reasons.push("P95 延迟满足任务预算。");
+      if (riskRank[task.risk_level] >= 3 && model.safety_score >= 0.9) reasons.push("高风险任务优先选择安全分更高的模型。");
+      return { ...model, score: total, cost, reasons, breakdown: { quality, safety: model.safety_score, latency, costScore, context } };
+    }
+
+    function route(task) {
+      const candidates = [];
+      const rejected = [];
+      models.forEach(model => {
+        const reasons = rejectReasons(model, task);
+        if (reasons.length) rejected.push({ model, reasons });
+        else candidates.push(score(model, task));
+      });
+      candidates.sort((a, b) => b.score - a.score);
+      return { candidates, rejected, recommended: candidates[0] };
+    }
+
+    function pct(value) {
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function draw(candidates) {
+      const canvas = document.getElementById("scoreChart");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      if (!candidates.length) {
+        ctx.fillStyle = "#647086";
+        ctx.font = "700 18px Segoe UI";
+        ctx.fillText("没有模型满足全部硬性约束", 28, 54);
+        ctx.font = "14px Segoe UI";
+        ctx.fillText("可以放宽预算、质量、隐私或上下文限制后重新路由。", 28, 86);
+        return;
+      }
+      const max = Math.max(...candidates.map(item => item.score), 1);
+      candidates.forEach((item, index) => {
+        const y = 42 + index * 72;
+        const bar = (width - 260) * (item.score / max);
+        ctx.fillStyle = index === 0 ? "#21835f" : "#315fd1";
+        ctx.fillRect(190, y, Math.max(bar, 4), 28);
+        ctx.fillStyle = "#172033";
+        ctx.font = "700 16px Segoe UI";
+        ctx.fillText(item.name, 22, y + 20);
+        ctx.fillStyle = "#647086";
+        ctx.font = "13px Segoe UI";
+        ctx.fillText(`${pct(item.score)} · $${item.cost.toFixed(4)}`, 204 + bar, y + 20);
+      });
+    }
+
+    function render() {
+      const task = tasks.find(item => item.id === document.getElementById("taskSelect").value) || tasks[0];
+      const result = route(task);
+      const recommended = result.recommended;
+      const metrics = [
+        ["推荐模型", recommended ? recommended.name : "无"],
+        ["任务类型", task.task_type],
+        ["风险等级", task.risk_level],
+        ["预计成本", recommended ? `$${recommended.cost.toFixed(4)}` : "-"]
+      ];
+      document.getElementById("metrics").innerHTML = metrics.map(([label, value]) => `
+        <div class="metric">
+          <div class="label">${label}</div>
+          <div class="value">${value}</div>
+        </div>
+      `).join("");
+
+      document.getElementById("reasons").innerHTML = recommended
+        ? recommended.reasons.map(reason => `<li>${reason}</li>`).join("")
+        : "<li>没有模型满足全部硬性约束。</li>";
+
+      document.getElementById("candidateTable").innerHTML = result.candidates.map(item => `
+        <tr>
+          <td>${item.name}<br><span class="label">${item.privacy_mode}</span></td>
+          <td class="score">${pct(item.score)}</td>
+          <td>$${item.cost.toFixed(4)}</td>
+          <td>${item.latency_ms_p95} ms</td>
+        </tr>
+      `).join("") || "<tr><td colspan=\"4\">无候选模型</td></tr>";
+
+      document.getElementById("rejected").innerHTML = result.rejected.map(item => `
+        <div class="reject-item">
+          <strong>${item.model.name}</strong>
+          <div>${item.reasons.join("、")}</div>
+        </div>
+      `).join("") || "<p class=\"label\">没有被过滤的模型。</p>";
+
+      draw(result.candidates);
+    }
+
+    const select = document.getElementById("taskSelect");
+    select.innerHTML = tasks.map(task => `<option value="${task.id}">${task.name}</option>`).join("");
+    select.addEventListener("change", render);
+    render();
+  </script>
+</body>
+</html>

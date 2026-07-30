@@ -1,0 +1,62 @@
+[
+  {
+    "id": "task-001",
+    "name": "客服工单意图分类",
+    "task_type": "classification",
+    "risk_level": "low",
+    "context_tokens": 1800,
+    "expected_output_tokens": 120,
+    "latency_budget_ms": 1500,
+    "max_budget_usd": 0.003,
+    "privacy": "standard",
+    "min_quality": 0.78
+  },
+  {
+    "id": "task-002",
+    "name": "合同条款 JSON 抽取",
+    "task_type": "extraction",
+    "risk_level": "high",
+    "context_tokens": 22000,
+    "expected_output_tokens": 900,
+    "latency_budget_ms": 3500,
+    "max_budget_usd": 0.08,
+    "privacy": "restricted",
+    "min_quality": 0.86
+  },
+  {
+    "id": "task-003",
+    "name": "长文档摘要",
+    "task_type": "summarization",
+    "risk_level": "medium",
+    "context_tokens": 180000,
+    "expected_output_tokens": 1400,
+    "latency_budget_ms": 5200,
+    "max_budget_usd": 0.42,
+    "privacy": "enterprise",
+    "min_quality": 0.84
+  },
+  {
+    "id": "task-004",
+    "name": "复杂方案推理",
+    "task_type": "reasoning",
+    "risk_level": "high",
+    "context_tokens": 16000,
+    "expected_output_tokens": 1800,
+    "latency_budget_ms": 6000,
+    "max_budget_usd": 0.18,
+    "privacy": "enterprise",
+    "min_quality": 0.9
+  },
+  {
+    "id": "task-005",
+    "name": "发布内容风险质检",
+    "task_type": "content_qa",
+    "risk_level": "medium",
+    "context_tokens": 9000,
+    "expected_output_tokens": 900,
+    "latency_budget_ms": 3000,
+    "max_budget_usd": 0.06,
+    "privacy": "enterprise",
+    "min_quality": 0.82
+  }
+]

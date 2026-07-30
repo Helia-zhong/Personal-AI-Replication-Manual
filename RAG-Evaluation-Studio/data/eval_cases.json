@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rag-001",
+    "question": "RAG 知识库切片为什么不能太短或太长？",
+    "expected_doc_ids": ["kb-001"],
+    "expected_terms": ["语义完整", "上下文", "检索精度"]
+  },
+  {
+    "id": "rag-002",
+    "question": "如果检索材料没有覆盖问题关键点，答案应该怎么处理？",
+    "expected_doc_ids": ["kb-002"],
+    "expected_terms": ["信息不足", "避免编造", "引用"]
+  },
+  {
+    "id": "rag-003",
+    "question": "RAG 系统怎样处理用户权限和敏感日志？",
+    "expected_doc_ids": ["kb-003"],
+    "expected_terms": ["权限边界", "脱敏", "审计记录"]
+  },
+  {
+    "id": "rag-004",
+    "question": "Embedding、BM25 和 reranker 分别适合什么场景？",
+    "expected_doc_ids": ["kb-004"],
+    "expected_terms": ["语义相近", "精确术语", "重新排序"]
+  },
+  {
+    "id": "rag-005",
+    "question": "上线后的 RAG 系统如何通过人工反馈持续改进？",
+    "expected_doc_ids": ["kb-005", "kb-006"],
+    "expected_terms": ["用户反馈", "评测集", "召回率", "人工复核"]
+  }
+]

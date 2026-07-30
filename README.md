@@ -1,12 +1,17 @@
 # Personal AI Replication Manual
 
-这个仓库用于整理 AI 产品原型、智能车辆仿真、车辆控制和数据可视化项目。每个重点项目都有独立目录、README 和可运行入口。
+这个仓库用于整理 AI 产品原型、评估实验、Agent 工程、模型路由和数据可视化项目。每个重点项目都有独立目录、README 和可运行入口；部分早期工程实验也保留在仓库中。
 
 ## 项目目录
 
 | 项目 | 简介 | 入口 |
 | --- | --- | --- |
 | AgentFlow Visualizer | LLM 工作流可视化、执行模拟与 Prompt 调试工具 | [AgentFlow-Visualizer/index.html](AgentFlow-Visualizer/index.html) |
+| PromptOps Evaluation Lab | Prompt 版本管理、测试集评估与评分看板 | [PromptOps-Evaluation-Lab/web/index.html](PromptOps-Evaluation-Lab/web/index.html) |
+| RAG Evaluation Studio | RAG 检索、引用召回、答案覆盖与评估看板 | [RAG-Evaluation-Studio/web/index.html](RAG-Evaluation-Studio/web/index.html) |
+| Agent Run Monitor | AI Agent 运行轨迹、工具调用、重试和成本观测 | [Agent-Run-Monitor/web/index.html](Agent-Run-Monitor/web/index.html) |
+| AI Content QA Workbench | AI 生成内容声明审查、引用覆盖和风险分级 | [AI-Content-QA-Workbench/web/index.html](AI-Content-QA-Workbench/web/index.html) |
+| Model Router Sandbox | 多模型路由策略、成本延迟质量权衡与候选排序 | [Model-Router-Sandbox/web/index.html](Model-Router-Sandbox/web/index.html) |
 | AutoVision Copilot | 行车画面的 VLM 场景理解与风险问答演示 | [AutoVision-Copilot/index.html](AutoVision-Copilot/index.html) |
 | PID Auto Tuning Dashboard | 线控转向 PID 参数调节、智能寻优与响应曲线对比 | [PID-Auto-Tuning-Dashboard/index.html](PID-Auto-Tuning-Dashboard/index.html) |
 | Auto Parking Trajectory Simulator | 五次多项式自动泊车轨迹规划与前端可视化 | [Auto-Parking-Trajectory-Simulator/index.html](Auto-Parking-Trajectory-Simulator/index.html) |
@@ -14,7 +19,6 @@
 | AutoRisk Lab | 行车场景风险分析、标注样例与评估工作台 | [AutoRisk-Lab/web/index.html](AutoRisk-Lab/web/index.html) |
 | Vehicle Manual RAG Copilot | 车辆手册本地检索问答助手 | [Vehicle-Manual-RAG-Copilot/web/index.html](Vehicle-Manual-RAG-Copilot/web/index.html) |
 | Parking Planner Lab | A* 自动泊车路径规划、障碍物与动画回放实验室 | [Parking-Planner-Lab/web/index.html](Parking-Planner-Lab/web/index.html) |
-| PromptOps Evaluation Lab | Prompt 版本管理、测试集评估与评分看板 | [PromptOps-Evaluation-Lab/web/index.html](PromptOps-Evaluation-Lab/web/index.html) |
 
 ## 快速运行
 
@@ -32,6 +36,11 @@ cd Personal-AI-Replication-Manual
 ```text
 .
 ├── AgentFlow-Visualizer/
+├── PromptOps-Evaluation-Lab/
+├── RAG-Evaluation-Studio/
+├── Agent-Run-Monitor/
+├── AI-Content-QA-Workbench/
+├── Model-Router-Sandbox/
 ├── AutoVision-Copilot/
 ├── PID-Auto-Tuning-Dashboard/
 ├── Auto-Parking-Trajectory-Simulator/
@@ -39,7 +48,6 @@ cd Personal-AI-Replication-Manual
 ├── AutoRisk-Lab/
 ├── Vehicle-Manual-RAG-Copilot/
 ├── Parking-Planner-Lab/
-├── PromptOps-Evaluation-Lab/
 ├── 01/
 ├── 02/
 ├── 03/

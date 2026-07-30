@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Run Monitor</title>
+  <style>
+    :root {
+      --ink: #182033;
+      --muted: #647086;
+      --line: #d8e0ec;
+      --panel: #ffffff;
+      --bg: #f5f7fb;
+      --green: #208a63;
+      --blue: #3267d6;
+      --amber: #d8891c;
+      --red: #ca4646;
+      --violet: #6b55c8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    header {
+      padding: 26px clamp(18px, 4vw, 48px) 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 40px);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    select {
+      min-height: 38px;
+      min-width: 240px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0 12px;
+      background: #fff;
+      font: inherit;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 22px auto 42px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .metric,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 16px 34px rgba(43, 52, 80, 0.08);
+    }
+
+    .metric {
+      padding: 14px;
+      min-height: 92px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .value {
+      margin-top: 8px;
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 18px;
+      min-width: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr) 86px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .bar {
+      height: 24px;
+      background: #edf1f7;
+      border-radius: 7px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      min-width: 3px;
+      border-radius: 7px;
+      background: var(--blue);
+    }
+
+    .step.failed .bar span {
+      background: var(--red);
+    }
+
+    .step.warn .bar span {
+      background: var(--amber);
+    }
+
+    .step-name {
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .incident-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .incident {
+      border-left: 4px solid var(--amber);
+      background: #fff9ec;
+      border-radius: 6px;
+      padding: 10px 12px;
+      line-height: 1.55;
+    }
+
+    .incident.high {
+      border-color: var(--red);
+      background: #fff2f2;
+    }
+
+    .incident.low {
+      border-color: var(--violet);
+      background: #f6f3ff;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    @media (max-width: 900px) {
+      header,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      select {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Agent Run Monitor</h1>
+      <p class="subtitle">AI Agent 运行轨迹看板：把步骤、工具、耗时、token、成本、重试和失败节点整理成可观察指标。</p>
+    </div>
+    <select id="runSelect"></select>
+  </header>
+
+  <main>
+    <section class="metrics" id="metrics"></section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>步骤耗时</h2>
+        <canvas id="durationChart" width="920" height="420"></canvas>
+      </div>
+      <div class="panel">
+        <h2>诊断结果</h2>
+        <div class="incident-list" id="incidents"></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>运行时间线</h2>
+        <div class="timeline" id="timeline"></div>
+      </div>
+      <div class="panel">
+        <h2>改进动作</h2>
+        <ul id="recommendations"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const runs = [
+      {
+        run_id: "run-2026-07-qa-001",
+        workflow: "content_quality_agent",
+        status: "completed",
+        objective: "检查一篇 AI 产品发布稿的事实、引用和语气风险",
+        steps: [
+          { id: "s1", name: "解析任务", agent: "planner", tool: "none", type: "reasoning", status: "success", duration_ms: 1320, tokens_in: 980, tokens_out: 240, cost_usd: 0.0021, retries: 0, notes: "识别需要检查事实、引用、语气三个维度" },
+          { id: "s2", name: "抽取声明", agent: "claim_extractor", tool: "text_parser", type: "tool", status: "success", duration_ms: 2860, tokens_in: 1840, tokens_out: 610, cost_usd: 0.0048, retries: 0, notes: "抽取 8 条待核验声明" },
+          { id: "s3", name: "检索依据", agent: "retriever", tool: "local_search", type: "tool", status: "success", duration_ms: 12140, tokens_in: 1320, tokens_out: 520, cost_usd: 0.0035, retries: 1, notes: "第二次检索补齐产品版本说明" },
+          { id: "s4", name: "风险打分", agent: "qa_judge", tool: "none", type: "reasoning", status: "success", duration_ms: 5740, tokens_in: 3100, tokens_out: 780, cost_usd: 0.0094, retries: 0, notes: "识别 2 条无引用声明和 1 条绝对化表达" },
+          { id: "s5", name: "生成报告", agent: "reporter", tool: "markdown_writer", type: "tool", status: "success", duration_ms: 2410, tokens_in: 1760, tokens_out: 950, cost_usd: 0.0061, retries: 0, notes: "输出分级问题和修改建议" }
+        ]
+      },
+      {
+        run_id: "run-2026-07-research-002",
+        workflow: "research_brief_agent",
+        status: "completed_with_warnings",
+        objective: "整理一组 AI 评估方法并形成对比摘要",
+        steps: [
+          { id: "s1", name: "生成研究计划", agent: "planner", tool: "none", type: "reasoning", status: "success", duration_ms: 1580, tokens_in: 870, tokens_out: 310, cost_usd: 0.0023, retries: 0, notes: "确定评估维度和输出结构" },
+          { id: "s2", name: "读取材料", agent: "researcher", tool: "document_reader", type: "tool", status: "success", duration_ms: 18840, tokens_in: 4260, tokens_out: 1190, cost_usd: 0.0132, retries: 2, notes: "一次解析失败后降低批量大小" },
+          { id: "s3", name: "归纳对比", agent: "analyst", tool: "none", type: "reasoning", status: "success", duration_ms: 9480, tokens_in: 5320, tokens_out: 1480, cost_usd: 0.0169, retries: 0, notes: "按准确性、成本、延迟和可解释性整理" },
+          { id: "s4", name: "验证引用", agent: "citation_checker", tool: "source_matcher", type: "tool", status: "failed", duration_ms: 7680, tokens_in: 2400, tokens_out: 180, cost_usd: 0.0042, retries: 2, notes: "两条引用缺少匹配片段" },
+          { id: "s5", name: "输出摘要", agent: "writer", tool: "markdown_writer", type: "tool", status: "success", duration_ms: 3320, tokens_in: 2850, tokens_out: 1240, cost_usd: 0.0084, retries: 0, notes: "保留引用警告" }
+        ]
+      },
+      {
+        run_id: "run-2026-07-data-003",
+        workflow: "dataset_cleaning_agent",
+        status: "completed",
+        objective: "清洗问答评测集并输出可用样本统计",
+        steps: [
+          { id: "s1", name: "读取数据", agent: "loader", tool: "csv_reader", type: "tool", status: "success", duration_ms: 2120, tokens_in: 420, tokens_out: 130, cost_usd: 0.0009, retries: 0, notes: "发现 128 条样本" },
+          { id: "s2", name: "标准化字段", agent: "cleaner", tool: "python_transform", type: "tool", status: "success", duration_ms: 3860, tokens_in: 760, tokens_out: 280, cost_usd: 0.0018, retries: 0, notes: "统一 question、answer、source 字段" },
+          { id: "s3", name: "质量检查", agent: "validator", tool: "rule_checker", type: "tool", status: "success", duration_ms: 4920, tokens_in: 1180, tokens_out: 420, cost_usd: 0.0026, retries: 0, notes: "标记 11 条低质量样本" },
+          { id: "s4", name: "生成统计", agent: "reporter", tool: "json_writer", type: "tool", status: "success", duration_ms: 1670, tokens_in: 690, tokens_out: 360, cost_usd: 0.0017, retries: 0, notes: "输出可用率和问题类型分布" }
+        ]
+      }
+    ];
+
+    function summarize(run) {
+      const steps = run.steps;
+      const totalDuration = steps.reduce((sum, step) => sum + step.duration_ms, 0);
+      const totalTokens = steps.reduce((sum, step) => sum + step.tokens_in + step.tokens_out, 0);
+      const totalCost = steps.reduce((sum, step) => sum + step.cost_usd, 0);
+      const retries = steps.reduce((sum, step) => sum + step.retries, 0);
+      const successes = steps.filter(step => step.status === "success").length;
+      const bottleneck = [...steps].sort((a, b) => b.duration_ms - a.duration_ms)[0];
+      return { totalDuration, totalTokens, totalCost, retries, successRate: successes / steps.length, bottleneck };
+    }
+
+    function incidents(run) {
+      const durations = run.steps.map(step => step.duration_ms).sort((a, b) => a - b);
+      const median = durations[Math.floor(durations.length / 2)];
+      const items = [];
+      run.steps.forEach(step => {
+        if (step.status !== "success") items.push({ severity: "high", step: step.name, reason: "步骤失败", detail: step.notes });
+        if (step.retries >= 2) items.push({ severity: "medium", step: step.name, reason: "重试次数偏高", detail: `重试 ${step.retries} 次` });
+        if (step.duration_ms > median * 2) items.push({ severity: "medium", step: step.name, reason: "耗时瓶颈", detail: `${step.duration_ms} ms` });
+        if (step.cost_usd >= 0.015) items.push({ severity: "low", step: step.name, reason: "成本偏高", detail: `$${step.cost_usd.toFixed(4)}` });
+      });
+      return items;
+    }
+
+    function recommendations(run) {
+      const items = incidents(run);
+      const output = [];
+      if (items.some(item => item.reason === "步骤失败")) output.push("为失败工具增加输入校验、降级路径和可复用错误样本。");
+      if (items.some(item => item.reason === "重试次数偏高")) output.push("把高重试步骤拆成更小批次，并记录每次重试的输入差异。");
+      if (items.some(item => item.reason === "成本偏高")) output.push("对长上下文步骤增加摘要缓存或模型分层调用。");
+      if (items.some(item => item.reason === "耗时瓶颈")) output.push("检查最慢工具是否可以预索引、并行化或缓存结果。");
+      return output.length ? output : ["当前运行稳定，可继续积累同类任务的趋势数据。"];
+    }
+
+    function fmtMs(ms) {
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+
+    function draw(run) {
+      const canvas = document.getElementById("durationChart");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      const maxDuration = Math.max(...run.steps.map(step => step.duration_ms));
+      const rowHeight = 62;
+      run.steps.forEach((step, index) => {
+        const y = 36 + index * rowHeight;
+        const barWidth = (width - 260) * (step.duration_ms / maxDuration);
+        ctx.fillStyle = step.status !== "success" ? "#ca4646" : step.retries ? "#d8891c" : "#3267d6";
+        ctx.fillRect(190, y, Math.max(barWidth, 4), 22);
+        ctx.fillStyle = "#182033";
+        ctx.font = "700 16px Segoe UI";
+        ctx.fillText(step.name, 20, y + 17);
+        ctx.fillStyle = "#647086";
+        ctx.font = "13px Segoe UI";
+        ctx.fillText(`${fmtMs(step.duration_ms)} · ${step.tool}`, 200 + barWidth, y + 17);
+      });
+    }
+
+    function render() {
+      const run = runs.find(item => item.run_id === document.getElementById("runSelect").value) || runs[0];
+      const summary = summarize(run);
+      const metricData = [
+        ["总耗时", fmtMs(summary.totalDuration)],
+        ["Token", summary.totalTokens.toLocaleString()],
+        ["成本", `$${summary.totalCost.toFixed(4)}`],
+        ["成功率", `${Math.round(summary.successRate * 100)}%`],
+        ["重试", summary.retries]
+      ];
+      document.getElementById("metrics").innerHTML = metricData.map(([label, value]) => `
+        <div class="metric">
+          <div class="label">${label}</div>
+          <div class="value">${value}</div>
+        </div>
+      `).join("");
+
+      document.getElementById("timeline").innerHTML = run.steps.map(step => {
+        const ratio = step.duration_ms / summary.bottleneck.duration_ms;
+        const state = step.status !== "success" ? "failed" : step.retries ? "warn" : "";
+        return `
+          <div class="step ${state}">
+            <div>
+              <div class="step-name">${step.name}</div>
+              <div class="muted">${step.agent}</div>
+            </div>
+            <div class="bar"><span style="width:${Math.max(ratio * 100, 5)}%"></span></div>
+            <div class="muted">${fmtMs(step.duration_ms)}</div>
+          </div>
+        `;
+      }).join("");
+
+      const incidentItems = incidents(run);
+      document.getElementById("incidents").innerHTML = incidentItems.length ? incidentItems.map(item => `
+        <div class="incident ${item.severity}">
+          <strong>${item.step} · ${item.reason}</strong>
+          <div class="muted">${item.detail}</div>
+        </div>
+      `).join("") : "<p class=\"muted\">没有发现高优先级异常。</p>";
+
+      document.getElementById("recommendations").innerHTML = recommendations(run).map(item => `<li>${item}</li>`).join("");
+      draw(run);
+    }
+
+    const select = document.getElementById("runSelect");
+    select.innerHTML = runs.map(run => `<option value="${run.run_id}">${run.workflow} · ${run.status}</option>`).join("");
+    select.addEventListener("change", render);
+    render();
+  </script>
+</body>
+</html>
