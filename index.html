@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal AI Replication Manual</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --ink: #0d1728;
+      --muted: #66748a;
+      --line: #d6dfeb;
+      --blue: #1e5eff;
+      --green: #15966b;
+      --yellow: #f4b73f;
+      --rose: #df5a6a;
+      --shadow: 0 18px 42px rgba(20, 34, 56, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      padding: 42px 0 32px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .btn {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 14px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .btn.primary {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    main {
+      padding: 28px 0 54px;
+    }
+
+    .notice {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 22px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .notice strong {
+      font-size: 16px;
+    }
+
+    .notice span {
+      color: var(--muted);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 34px 0 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .project {
+      display: grid;
+      gap: 14px;
+      min-height: 212px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .project.featured {
+      border-color: rgba(30, 94, 255, 0.38);
+    }
+
+    .project h3 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .project p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-content: start;
+    }
+
+    .tag {
+      border-radius: 999px;
+      background: #eef3f8;
+      color: #536277;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.ai {
+      background: #eaf4ff;
+      color: #1555b8;
+    }
+
+    .tag.game {
+      background: #fff1c9;
+      color: #8a5d00;
+    }
+
+    .tag.video {
+      background: #eef2ff;
+      color: #4052b5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-self: end;
+    }
+
+    .actions a {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 11px;
+      background: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .actions a.live {
+      border-color: rgba(21, 150, 107, 0.35);
+      background: #eaf8f3;
+      color: #087151;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 22px 0;
+      color: var(--muted);
+      background: #fff;
+    }
+
+    @media (max-width: 900px) {
+      .top {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: min(100vw - 24px, 1180px);
+      }
+
+      .top {
+        padding: 28px 0 22px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .btn,
+      .actions a {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div>
+        <h1>Personal AI Replication Manual</h1>
+        <p class="subtitle">一个可直接打开的 AI 项目作品集，集中展示 Agent、RAG、PromptOps、模型路由、数据治理、AI 游戏和视频理解实验。</p>
+      </div>
+      <nav class="nav" aria-label="主要入口">
+        <a class="btn primary" href="#ai-projects">AI Projects</a>
+        <a class="btn" href="README.md">README</a>
+        <a class="btn" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <section class="notice">
+        <strong>如果你在 GitHub 仓库页看到 `web/index.html`，那只是文件路径，不是运行入口。</strong>
+        <span>在线演示请打开 GitHub Pages 地址；本地运行则下载仓库后双击对应项目里的 `index.html` 或 `web/index.html`。</span>
+      </section>
+
+      <div class="section-title" id="ai-projects">
+        <h2>AI 项目</h2>
+        <span class="count">9 projects</span>
+      </div>
+      <section class="grid">
+        <article class="project featured">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag game">Game</span></div>
+          <h3>AI Connect Four Arena</h3>
+          <p>四子棋 AI 对战、minimax 搜索、局面分析、挑战样例、会话恢复和 Markdown 报告导出。</p>
+          <div class="actions">
+            <a class="live" href="AI-Connect-Four-Arena/web/index.html">在线演示</a>
+            <a href="AI-Connect-Four-Arena/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project featured">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag video">Video</span></div>
+          <h3>AI Video Insight Lab</h3>
+          <p>视频场景拆分、字幕覆盖、OCR 线索、高光密度、剪辑问题诊断和报告导出。</p>
+          <div class="actions">
+            <a class="live" href="AI-Video-Insight-Lab/web/index.html">在线演示</a>
+            <a href="AI-Video-Insight-Lab/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">RAG</span></div>
+          <h3>RAG Evaluation Studio</h3>
+          <p>检索召回、引用覆盖、答案质量和 RAG 流程评估看板。</p>
+          <div class="actions">
+            <a class="live" href="RAG-Evaluation-Studio/web/index.html">在线演示</a>
+            <a href="RAG-Evaluation-Studio/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">Agent</span></div>
+          <h3>Agent Run Monitor</h3>
+          <p>Agent 运行轨迹、工具调用、重试、成本和延迟观测。</p>
+          <div class="actions">
+            <a class="live" href="Agent-Run-Monitor/web/index.html">在线演示</a>
+            <a href="Agent-Run-Monitor/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">QA</span></div>
+          <h3>AI Content QA Workbench</h3>
+          <p>AI 生成内容声明审查、引用覆盖、风险分级和修订建议。</p>
+          <div class="actions">
+            <a class="live" href="AI-Content-QA-Workbench/web/index.html">在线演示</a>
+            <a href="AI-Content-QA-Workbench/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">Routing</span></div>
+          <h3>Model Router Sandbox</h3>
+          <p>多模型路由策略、成本、延迟、质量权衡和候选排序。</p>
+          <div class="actions">
+            <a class="live" href="Model-Router-Sandbox/web/index.html">在线演示</a>
+            <a href="Model-Router-Sandbox/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">Data</span></div>
+          <h3>AI Dataset Curation Lab</h3>
+          <p>数据集质检、重复检测、泄漏检查、样本评分和筛选流程。</p>
+          <div class="actions">
+            <a class="live" href="AI-Dataset-Curation-Lab/web/index.html">在线演示</a>
+            <a href="AI-Dataset-Curation-Lab/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">PromptOps</span></div>
+          <h3>PromptOps Evaluation Lab</h3>
+          <p>Prompt 版本管理、测试集评估、评分看板和回归观察。</p>
+          <div class="actions">
+            <a class="live" href="PromptOps-Evaluation-Lab/web/index.html">在线演示</a>
+            <a href="PromptOps-Evaluation-Lab/README.md">说明文档</a>
+          </div>
+        </article>
+
+        <article class="project">
+          <div class="tags"><span class="tag ai">AI</span><span class="tag">Workflow</span></div>
+          <h3>AgentFlow Visualizer</h3>
+          <p>LLM 工作流可视化、执行模拟、节点配置和 prompt 调试。</p>
+          <div class="actions">
+            <a class="live" href="AgentFlow-Visualizer/index.html">在线演示</a>
+            <a href="AgentFlow-Visualizer/README.md">说明文档</a>
+          </div>
+        </article>
+      </section>
+
+      <div class="section-title">
+        <h2>其他实验</h2>
+        <span class="count">7 projects</span>
+      </div>
+      <section class="grid">
+        <article class="project">
+          <div class="tags"><span class="tag">Vision</span></div>
+          <h3>AutoVision Copilot</h3>
+          <p>VLM 场景理解与风险问答演示。</p>
+          <div class="actions"><a class="live" href="AutoVision-Copilot/index.html">在线演示</a><a href="AutoVision-Copilot/README.md">说明文档</a></div>
+        </article>
+        <article class="project">
+          <div class="tags"><span class="tag">Control</span></div>
+          <h3>PID Auto Tuning Dashboard</h3>
+          <p>PID 参数调节、响应曲线和自动寻优对比。</p>
+          <div class="actions"><a class="live" href="PID-Auto-Tuning-Dashboard/index.html">在线演示</a><a href="PID-Auto-Tuning-Dashboard/README.md">说明文档</a></div>
+        </article>
+        <article class="project">
+          <div class="tags"><span class="tag">Planning</span></div>
+          <h3>Auto Parking Trajectory Simulator</h3>
+          <p>轨迹规划与前端可视化实验。</p>
+          <div class="actions"><a class="live" href="Auto-Parking-Trajectory-Simulator/index.html">在线演示</a><a href="Auto-Parking-Trajectory-Simulator/README.md">说明文档</a></div>
+        </article>
+        <article class="project">
+          <div class="tags"><span class="tag">Anomaly</span></div>
+          <h3>CAN Sentinel</h3>
+          <p>时序异常检测和传感器信号观察。</p>
+          <div class="actions"><a class="live" href="CAN-Sentinel/web/index.html">在线演示</a><a href="CAN-Sentinel/README.md">说明文档</a></div>
+        </article>
+        <article class="project">
+          <div class="tags"><span class="tag">Risk</span></div>
+          <h3>AutoRisk Lab</h3>
+          <p>场景风险分析、样例标注和评估工作台。</p>
+          <div class="actions"><a class="live" href="AutoRisk-Lab/web/index.html">在线演示</a><a href="AutoRisk-Lab/README.md">说明文档</a></div>
+        </article>
+        <article class="project">
+          <div class="tags"><span class="tag">RAG</span></div>
+          <h3>Vehicle Manual RAG Copilot</h3>
+          <p>本地手册检索问答助手。</p>
+          <div class="actions"><a class="live" href="Vehicle-Manual-RAG-Copilot/web/index.html">在线演示</a><a href="Vehicle-Manual-RAG-Copilot/README.md">说明文档</a></div>
+        </article>
+        <article class="project">
+          <div class="tags"><span class="tag">Planner</span></div>
+          <h3>Parking Planner Lab</h3>
+          <p>A* 路径规划、障碍物和动画回放。</p>
+          <div class="actions"><a class="live" href="Parking-Planner-Lab/web/index.html">在线演示</a><a href="Parking-Planner-Lab/README.md">说明文档</a></div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">MIT License · Static projects can be opened through GitHub Pages or locally from the cloned repository.</div>
+  </footer>
+</body>
+</html>

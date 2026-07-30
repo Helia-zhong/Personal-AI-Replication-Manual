@@ -2,6 +2,11 @@
 
 一个可对战、可分析、可导出报告的四子棋 AI 项目。
 
+## 在线打开
+
+- GitHub Pages：<https://helia-zhong.github.io/Personal-AI-Replication-Manual/AI-Connect-Four-Arena/web/index.html>
+- 仓库文件页只能看源码，不能直接运行应用。
+
 ## 你可以做什么
 
 - 人机对战
@@ -11,9 +16,7 @@
 - 导出 Markdown 局面报告
 - Python CLI 和 FastAPI 接口
 
-## 快速开始
-
-### 浏览器
+## 本地运行
 
 直接打开：
 
@@ -21,7 +24,7 @@
 web/index.html
 ```
 
-### 后端
+## 后端
 
 ```bash
 cd AI-Connect-Four-Arena/backend
@@ -29,7 +32,7 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-### CLI
+## CLI
 
 ```bash
 cd AI-Connect-Four-Arena
@@ -64,7 +67,8 @@ AI-Connect-Four-Arena/
 ├── backend/
 │   ├── app.py
 │   ├── connect_four.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── tests/
 ├── data/
 │   └── sample_positions.json
 ├── scripts/

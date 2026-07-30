@@ -2,6 +2,11 @@
 
 一个用于视频场景理解、字幕覆盖检查、OCR 线索分析和剪辑报告导出的 AI 项目。
 
+## 在线打开
+
+- GitHub Pages：<https://helia-zhong.github.io/Personal-AI-Replication-Manual/AI-Video-Insight-Lab/web/index.html>
+- 仓库文件页只能看源码，不能直接运行应用。
+
 ## 你可以做什么
 
 - 浏览样例视频的场景拆分
@@ -11,9 +16,7 @@
 - 用 CLI 或 FastAPI 调用分析结果
 - 刷新后恢复当前 clip 与时间位置
 
-## 快速开始
-
-### 浏览器
+## 本地运行
 
 直接打开：
 
@@ -21,7 +24,7 @@
 web/index.html
 ```
 
-### 后端
+## 后端
 
 ```bash
 cd AI-Video-Insight-Lab/backend
@@ -29,7 +32,7 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-### CLI
+## CLI
 
 ```bash
 cd AI-Video-Insight-Lab
@@ -52,7 +55,8 @@ AI-Video-Insight-Lab/
 ├── backend/
 │   ├── app.py
 │   ├── video_lab.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── tests/
 ├── data/
 │   └── clips.json
 ├── scripts/
