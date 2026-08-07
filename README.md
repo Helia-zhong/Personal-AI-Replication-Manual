@@ -21,7 +21,7 @@
 | AgentFlow Visualizer | 多页面 LLM 工作流实验台、运行轨迹与 Prompt 评估工具 | [打开](AgentFlow-Visualizer/index.html) |
 | PromptOps Evaluation Lab | 多页面 Prompt 版本、回归测试、发布门禁与报告控制台 | [打开](PromptOps-Evaluation-Lab/web/index.html) |
 | RAG Evaluation Studio | 多页面 BM25 检索、引用评测、知识库与 Top-K 实验工作台 | [打开](RAG-Evaluation-Studio/web/index.html) |
-| Agent Run Monitor | AI Agent 运行轨迹、工具调用、重试和成本观测 | [打开](Agent-Run-Monitor/web/index.html) |
+| Agent Run Monitor | 多页面 Agent Trace、异常诊断、运行健康度与成本性能控制台 | [打开](Agent-Run-Monitor/web/index.html) |
 | AI Content QA Workbench | AI 生成内容声明审查、引用覆盖和风险分级 | [打开](AI-Content-QA-Workbench/web/index.html) |
 | Model Router Sandbox | 多模型路由策略、成本延迟质量权衡与候选排序 | [打开](Model-Router-Sandbox/web/index.html) |
 | AI Dataset Curation Lab | 数据集质检、重复检测、泄漏检查与样本评分 | [打开](AI-Dataset-Curation-Lab/web/index.html) |

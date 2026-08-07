@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Run Monitor 成本性能">
+  <title>成本性能 | Agent Run Monitor</title>
+  <link rel="stylesheet" href="styles.css?v=4.0.0">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="app.js?v=4.0.0" defer></script>
+</head>
+<body data-page="economics">
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html"><span class="brand-symbol"><i data-lucide="activity"></i></span><span><strong>Agent Monitor</strong><small>RUN OBSERVABILITY</small></span></a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="index.html"><i data-lucide="layout-dashboard"></i><span>运行总览</span></a>
+        <a href="trace.html"><i data-lucide="workflow"></i><span>Trace 详情</span></a>
+        <a href="incidents.html"><i data-lucide="shield-alert"></i><span>异常中心</span></a>
+        <a class="active" href="economics.html" aria-current="page"><i data-lucide="chart-no-axes-combined"></i><span>成本性能</span></a>
+      </nav>
+      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE LIVE</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-heading">
+      <div><p class="eyebrow">UNIT ECONOMICS</p><h1>成本性能</h1><p>运行成本、Token 消耗与延迟预算</p></div>
+      <div class="budget-controls">
+        <label><span>成本预算 <b id="costBudgetValue">$0.030</b></span><input id="costBudget" type="range" min="10" max="60" step="5" value="30"></label>
+        <label><span>延迟预算 <b id="latencyBudgetValue">30s</b></span><input id="latencyBudget" type="range" min="10" max="50" step="5" value="30"></label>
+      </div>
+    </section>
+
+    <section class="metric-grid metric-grid-four" aria-label="成本指标">
+      <article class="metric-accent"><span>总成本</span><strong id="economicsTotalCost">--</strong><small>3 RUNS</small></article>
+      <article><span>平均单步成本</span><strong id="averageStepCost">--</strong><small>PER STEP</small></article>
+      <article><span>每千 Token</span><strong id="costPerKToken">--</strong><small>BLENDED RATE</small></article>
+      <article class="metric-danger"><span>超预算运行</span><strong id="overBudgetMetric">--</strong><small id="overBudgetMeta">COST OR LATENCY</small></article>
+    </section>
+
+    <section class="economics-layout">
+      <article class="panel chart-panel">
+        <header class="panel-header"><div><p class="panel-kicker">COST / LATENCY MATRIX</p><h2>运行经济性</h2></div><div class="legend"><span><i class="legend-bar blue"></i>Token</span><span><i class="legend-dot coral"></i>成本</span></div></header>
+        <canvas id="economicsChart" aria-label="运行经济性图"></canvas>
+      </article>
+      <article class="panel budget-panel">
+        <header class="panel-header"><div><p class="panel-kicker">BUDGET GATE</p><h2>预算门禁</h2></div><span class="status-chip warning" id="budgetGateStatus">REVIEW</span></header>
+        <div class="budget-run-list" id="budgetRunList"></div>
+      </article>
+    </section>
+
+    <section class="panel tool-economics-panel">
+      <header class="panel-header"><div><p class="panel-kicker">TOOL ECONOMICS</p><h2>工具经济性</h2></div><span class="panel-note" id="economicsToolCount">0 TOOLS</span></header>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>工具</th><th>调用</th><th>平均耗时</th><th>Token</th><th>总成本</th><th>成本占比</th><th>信号</th></tr></thead>
+          <tbody id="toolEconomicsRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel optimization-panel">
+      <header class="panel-header"><div><p class="panel-kicker">OPTIMIZATION SCENARIO</p><h2>优化空间</h2></div><span class="panel-note" id="savingsEstimate">--</span></header>
+      <div class="optimization-grid" id="optimizationGrid"></div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

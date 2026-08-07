@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Run Monitor 异常中心">
+  <title>异常中心 | Agent Run Monitor</title>
+  <link rel="stylesheet" href="styles.css?v=4.0.0">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="app.js?v=4.0.0" defer></script>
+</head>
+<body data-page="incidents">
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html"><span class="brand-symbol"><i data-lucide="activity"></i></span><span><strong>Agent Monitor</strong><small>RUN OBSERVABILITY</small></span></a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="index.html"><i data-lucide="layout-dashboard"></i><span>运行总览</span></a>
+        <a href="trace.html"><i data-lucide="workflow"></i><span>Trace 详情</span></a>
+        <a class="active" href="incidents.html" aria-current="page"><i data-lucide="shield-alert"></i><span>异常中心</span></a>
+        <a href="economics.html"><i data-lucide="chart-no-axes-combined"></i><span>成本性能</span></a>
+      </nav>
+      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE LIVE</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-heading">
+      <div><p class="eyebrow">INCIDENT COMMAND</p><h1>异常中心</h1><p>失败、重试、延迟与成本诊断</p></div>
+      <div class="heading-actions">
+        <div class="segmented" id="severityFilter" aria-label="严重级别筛选">
+          <button class="active" type="button" data-severity="all">全部</button><button type="button" data-severity="high">高危</button><button type="button" data-severity="medium">中危</button><button type="button" data-severity="low">低危</button>
+        </div>
+        <button class="button button-secondary" id="exportIncidents" type="button"><i data-lucide="download"></i><span>导出报告</span></button>
+      </div>
+    </section>
+
+    <section class="metric-grid metric-grid-four" aria-label="异常指标">
+      <article class="metric-danger"><span>高危</span><strong id="highIncidentMetric">--</strong><small>FAILED STEPS</small></article>
+      <article><span>中危</span><strong id="mediumIncidentMetric">--</strong><small>RETRY / LATENCY</small></article>
+      <article><span>低危</span><strong id="lowIncidentMetric">--</strong><small>COST SIGNALS</small></article>
+      <article class="metric-accent"><span>受影响运行</span><strong id="affectedRunMetric">--</strong><small>OF 3 RUNS</small></article>
+    </section>
+
+    <section class="incident-layout">
+      <article class="panel incident-queue-panel">
+        <header class="panel-header"><div><p class="panel-kicker">INCIDENT QUEUE</p><h2>诊断队列</h2></div><span class="panel-note" id="incidentResultCount">0 ITEMS</span></header>
+        <div class="incident-queue" id="incidentQueue"></div>
+      </article>
+      <article class="panel incident-detail-panel">
+        <header class="panel-header"><div><p class="panel-kicker">DIAGNOSTIC DETAIL</p><h2 id="incidentDetailTitle">异常详情</h2></div><span class="status-chip" id="incidentDetailSeverity">--</span></header>
+        <div id="incidentDetail"></div>
+      </article>
+    </section>
+
+    <section class="panel remediation-panel">
+      <header class="panel-header"><div><p class="panel-kicker">REMEDIATION PLAN</p><h2>修复优先级</h2></div><span class="panel-note">AUTO GENERATED</span></header>
+      <div class="remediation-grid" id="remediationGrid"></div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

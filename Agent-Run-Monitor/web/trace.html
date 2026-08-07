@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Agent Run Monitor Trace 详情">
+  <title>Trace 详情 | Agent Run Monitor</title>
+  <link rel="stylesheet" href="styles.css?v=4.0.0">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="app.js?v=4.0.0" defer></script>
+</head>
+<body data-page="trace">
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html"><span class="brand-symbol"><i data-lucide="activity"></i></span><span><strong>Agent Monitor</strong><small>RUN OBSERVABILITY</small></span></a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="index.html"><i data-lucide="layout-dashboard"></i><span>运行总览</span></a>
+        <a class="active" href="trace.html" aria-current="page"><i data-lucide="workflow"></i><span>Trace 详情</span></a>
+        <a href="incidents.html"><i data-lucide="shield-alert"></i><span>异常中心</span></a>
+        <a href="economics.html"><i data-lucide="chart-no-axes-combined"></i><span>成本性能</span></a>
+      </nav>
+      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE LIVE</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-heading">
+      <div><p class="eyebrow">TRACE EXPLORER</p><h1>Trace 详情</h1><p id="traceObjective">--</p></div>
+      <div class="heading-actions">
+        <label class="select-control wide"><span>运行</span><select id="traceRunSelect" aria-label="选择运行"></select></label>
+        <button class="button button-secondary" id="exportTrace" type="button"><i data-lucide="download"></i><span>导出 JSON</span></button>
+      </div>
+    </section>
+
+    <section class="run-banner">
+      <div><span class="run-id" id="traceRunId">--</span><strong id="traceWorkflow">--</strong></div>
+      <div class="run-banner-meta"><span id="traceStarted">--</span><span class="status-chip" id="traceStatus">--</span></div>
+    </section>
+
+    <section class="metric-grid metric-grid-five" aria-label="Trace 指标">
+      <article class="metric-accent"><span>总耗时</span><strong id="traceDuration">--</strong><small>END TO END</small></article>
+      <article><span>步骤成功率</span><strong id="traceSuccess">--</strong><small>COMPLETION</small></article>
+      <article><span>Token</span><strong id="traceTokens">--</strong><small>IN + OUT</small></article>
+      <article><span>估算成本</span><strong id="traceCost">--</strong><small>USD</small></article>
+      <article class="metric-danger"><span>重试</span><strong id="traceRetries">--</strong><small>ATTEMPTS</small></article>
+    </section>
+
+    <section class="trace-layout">
+      <article class="panel waterfall-panel">
+        <header class="panel-header"><div><p class="panel-kicker">WATERFALL</p><h2>执行时间线</h2></div><span class="panel-note" id="traceStepCount">0 STEPS</span></header>
+        <div class="waterfall-scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+        <div class="waterfall" id="waterfall"></div>
+      </article>
+      <article class="panel inspector-panel">
+        <header class="panel-header"><div><p class="panel-kicker">STEP INSPECTOR</p><h2 id="stepInspectorTitle">步骤详情</h2></div><span class="status-chip" id="stepInspectorStatus">--</span></header>
+        <div id="stepInspector"></div>
+      </article>
+    </section>
+
+    <section class="trace-bottom">
+      <article class="panel chart-panel compact-chart">
+        <header class="panel-header"><div><p class="panel-kicker">RESOURCE PROFILE</p><h2>步骤资源分布</h2></div><div class="legend"><span><i class="legend-bar blue"></i>Token</span><span><i class="legend-dot coral"></i>成本</span></div></header>
+        <canvas id="resourceChart" aria-label="步骤资源分布图"></canvas>
+      </article>
+      <article class="panel">
+        <header class="panel-header"><div><p class="panel-kicker">RUN ATTRIBUTES</p><h2>运行属性</h2></div><span class="panel-note">TRACE CONTEXT</span></header>
+        <div class="attribute-list" id="traceAttributes"></div>
+      </article>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
