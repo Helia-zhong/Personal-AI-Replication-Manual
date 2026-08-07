@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="RAG 知识库与索引浏览">
+  <title>知识库 | RAG Evaluation Studio</title><link rel="stylesheet" href="styles.css?v=3.0.2">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script><script src="app.js?v=3.0.2" defer></script>
+</head>
+<body data-page="corpus">
+  <header class="app-header"><div class="header-inner">
+    <a class="brand" href="index.html"><span class="brand-symbol"><i data-lucide="blocks"></i></span><span><strong>RAG Studio</strong><small>EVALUATION SYSTEM</small></span></a>
+    <nav class="main-nav" aria-label="主导航"><a href="index.html"><i data-lucide="scan-search"></i><span>检索工作台</span></a><a href="evaluation.html"><i data-lucide="flask-conical"></i><span>评测运行</span></a><a class="active" href="corpus.html" aria-current="page"><i data-lucide="library"></i><span>知识库</span></a><a href="reports.html"><i data-lucide="chart-spline"></i><span>实验报告</span></a></nav>
+    <div class="header-meta"><span class="runtime-state"><i></i> INDEX READY</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+  </div></header>
+  <main class="page-shell">
+    <section class="page-heading"><div><p class="eyebrow">CORPUS EXPLORER</p><h1>知识库</h1><p>检查文档分类、切片内容、索引词元与可检索状态。</p></div><a class="button button-primary" href="index.html"><i data-lucide="search"></i><span>打开检索</span></a></section>
+    <section class="corpus-summary">
+      <div><span>CORPUS</span><strong>enterprise-rag-v1</strong><small>本地固定知识库</small></div><div><span>DOCUMENTS</span><strong id="corpusDocMetric">--</strong><small>可检索文档</small></div><div><span>CATEGORIES</span><strong id="corpusCategoryMetric">--</strong><small>内容域</small></div><div><span>INDEX TOKENS</span><strong id="corpusTokenMetric">--</strong><small>去停用词后</small></div>
+    </section>
+    <section class="corpus-layout">
+      <article class="panel corpus-list-panel"><header class="panel-header corpus-tools"><div class="search-field"><i data-lucide="search"></i><input id="corpusSearch" type="search" placeholder="搜索标题、正文或文档 ID" aria-label="搜索知识库"></div><select id="categoryFilter" aria-label="筛选文档分类"><option value="all">全部分类</option></select></header><div class="corpus-list" id="corpusList"></div><div class="list-footer"><span id="corpusResultCount">0 documents</span><span>BM25 index · in memory</span></div></article>
+      <article class="panel corpus-inspector"><header class="panel-header"><div><p class="panel-kicker">DOCUMENT INSPECTOR</p><h2 id="corpusDetailTitle">文档详情</h2></div><span class="category-chip" id="corpusDetailCategory">--</span></header><div class="corpus-detail" id="corpusDetail"></div></article>
+    </section>
+  </main><div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

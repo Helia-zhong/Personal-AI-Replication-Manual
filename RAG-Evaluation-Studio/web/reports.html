@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="RAG Top-K 实验对比与报告导出">
+  <title>实验报告 | RAG Evaluation Studio</title><link rel="stylesheet" href="styles.css?v=3.0.2">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script><script src="app.js?v=3.0.2" defer></script>
+</head>
+<body data-page="reports">
+  <header class="app-header"><div class="header-inner">
+    <a class="brand" href="index.html"><span class="brand-symbol"><i data-lucide="blocks"></i></span><span><strong>RAG Studio</strong><small>EVALUATION SYSTEM</small></span></a>
+    <nav class="main-nav" aria-label="主导航"><a href="index.html"><i data-lucide="scan-search"></i><span>检索工作台</span></a><a href="evaluation.html"><i data-lucide="flask-conical"></i><span>评测运行</span></a><a href="corpus.html"><i data-lucide="library"></i><span>知识库</span></a><a class="active" href="reports.html" aria-current="page"><i data-lucide="chart-spline"></i><span>实验报告</span></a></nav>
+    <div class="header-meta"><span class="runtime-state"><i></i> 5 RUNS READY</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+  </div></header>
+  <main class="page-shell">
+    <section class="page-heading"><div><p class="eyebrow">EXPERIMENT REPORT</p><h1>Top-K 实验报告</h1><p>比较检索范围对召回、精度和综合得分的影响。</p></div><div class="heading-actions"><button class="button button-secondary" id="exportMarkdown" type="button"><i data-lucide="file-down"></i><span>导出 Markdown</span></button><button class="button button-primary" id="exportJson" type="button"><i data-lucide="download"></i><span>导出 JSON</span></button></div></section>
+    <section class="experiment-banner"><div><span>BEST CONFIGURATION</span><strong id="bestConfiguration">TOP-K --</strong><small id="bestConfigurationMeta">等待评估</small></div><div class="compare-controls"><label><span>基准</span><select id="referenceK" aria-label="基准 Top-K"></select></label><i data-lucide="arrow-right"></i><label><span>候选</span><select id="candidateK" aria-label="候选 Top-K"></select></label></div></section>
+    <section class="metric-grid" aria-label="实验对比摘要"><article class="accent"><span>候选得分</span><strong id="reportCandidateScore">--</strong><small id="reportCandidateMeta">TOP-K</small></article><article><span>综合变化</span><strong id="reportDelta">--</strong><small>相对基准</small></article><article><span>召回变化</span><strong id="reportRecallDelta">--</strong><small>引用召回</small></article><article><span>精度变化</span><strong id="reportPrecisionDelta">--</strong><small>引用精度</small></article></section>
+    <section class="report-layout"><article class="panel"><header class="panel-header"><div><p class="panel-kicker">CONFIGURATION CURVE</p><h2>Top-K 性能曲线</h2></div><span class="panel-note">K = 1 — 5</span></header><div class="chart-wrap report-chart"><canvas id="experimentChart" aria-label="Top-K 实验得分曲线"></canvas></div></article><article class="panel tradeoff-panel"><header class="panel-header"><div><p class="panel-kicker">TRADE-OFF</p><h2>配置判断</h2></div><span class="status-chip" id="tradeoffStatus">--</span></header><div id="tradeoffContent" class="tradeoff-content"></div></article></section>
+    <section class="panel experiment-table-panel"><header class="panel-header"><div><p class="panel-kicker">ALL RUNS</p><h2>实验结果</h2></div><span class="panel-note">DETERMINISTIC BM25</span></header><div class="table-wrap"><table class="data-table experiment-table"><thead><tr><th>配置</th><th>Top 命中</th><th>引用召回</th><th>引用精度</th><th>要点覆盖</th><th>综合评分</th><th>结论</th></tr></thead><tbody id="experimentRows"></tbody></table></div></section>
+    <section class="panel risk-panel"><header class="panel-header"><div><p class="panel-kicker">FAILURE ANALYSIS</p><h2>低分与风险用例</h2></div><span class="panel-note" id="riskCount">0 CASES</span></header><div class="risk-list" id="riskList"></div></section>
+  </main><div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RAG 固定测试集评测与用例诊断">
+  <title>评测运行 | RAG Evaluation Studio</title>
+  <link rel="stylesheet" href="styles.css?v=3.0.2">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script><script src="app.js?v=3.0.2" defer></script>
+</head>
+<body data-page="evaluation">
+  <header class="app-header"><div class="header-inner">
+    <a class="brand" href="index.html"><span class="brand-symbol"><i data-lucide="blocks"></i></span><span><strong>RAG Studio</strong><small>EVALUATION SYSTEM</small></span></a>
+    <nav class="main-nav" aria-label="主导航"><a href="index.html"><i data-lucide="scan-search"></i><span>检索工作台</span></a><a class="active" href="evaluation.html" aria-current="page"><i data-lucide="flask-conical"></i><span>评测运行</span></a><a href="corpus.html"><i data-lucide="library"></i><span>知识库</span></a><a href="reports.html"><i data-lucide="chart-spline"></i><span>实验报告</span></a></nav>
+    <div class="header-meta"><span class="runtime-state"><i></i> EVAL READY</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+  </div></header>
+  <main class="page-shell">
+    <section class="page-heading"><div><p class="eyebrow">BENCHMARK RUN</p><h1>固定集评测</h1><p>分离观察检索召回、引用精度与答案要点覆盖。</p></div><div class="heading-actions"><label class="inline-select"><span>Top-K</span><select id="evalTopK" aria-label="评测 Top-K"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label><button class="button button-primary" id="runEvaluation" type="button"><i data-lucide="play"></i><span>运行评测</span></button></div></section>
+    <section class="metric-grid five" aria-label="评测指标">
+      <article class="accent"><span>综合评分</span><strong id="overallMetric">--</strong><small id="overallMeta">等待运行</small></article>
+      <article><span>Top 命中</span><strong id="topHitMetric">--</strong><small>首位文档正确</small></article>
+      <article><span>引用召回</span><strong id="recallMetric">--</strong><small>期望来源覆盖</small></article>
+      <article><span>引用精度</span><strong id="precisionMetric">--</strong><small>候选来源有效</small></article>
+      <article><span>要点覆盖</span><strong id="coverageMetric">--</strong><small>答案关键内容</small></article>
+    </section>
+    <section class="evaluation-grid">
+      <article class="panel chart-panel"><header class="panel-header"><div><p class="panel-kicker">CASE SCORE</p><h2>逐用例得分</h2></div><span class="panel-note">0 - 100</span></header><div class="chart-wrap"><canvas id="caseChart" aria-label="RAG 用例得分图"></canvas></div></article>
+      <article class="panel gate-panel"><header class="panel-header"><div><p class="panel-kicker">QUALITY GATE</p><h2>质量门禁</h2></div><span class="status-chip" id="evalGateStatus">PENDING</span></header><div class="gate-summary"><strong id="passedCaseMetric">--</strong><span>用例达到 70 分</span></div><div class="gate-list" id="evalGateList"></div></article>
+    </section>
+    <section class="evaluation-detail-grid">
+      <article class="panel"><header class="panel-header"><div><p class="panel-kicker">EVAL CASES</p><h2>评测用例</h2></div><span class="panel-note" id="evalCaseCount">5 CASES</span></header><div class="table-wrap"><table class="data-table"><thead><tr><th>问题</th><th>期望引用</th><th>Top</th><th>覆盖</th><th>综合</th></tr></thead><tbody id="evaluationRows"></tbody></table></div></article>
+      <article class="panel case-inspector"><header class="panel-header"><div><p class="panel-kicker">CASE INSPECTOR</p><h2 id="evalDetailTitle">用例详情</h2></div><span class="status-chip" id="evalDetailStatus">--</span></header><div id="evalDetail" class="eval-detail"></div></article>
+    </section>
+  </main><div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
