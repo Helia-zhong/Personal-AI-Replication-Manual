@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-测试脚本：验证 app.py 的核心功能
+测试脚本：验证 app3.py 的核心功能
 """
 import sys
 sys.path.insert(0, '.')
@@ -22,7 +22,7 @@ def check_grashof_condition(L1, L2, L3, L4):
     if not grashof_satisfied:
         return False, "双摇杆机构", f"不满足格拉晓夫条件"
 
-    if L2 == s and L1 != l:
+    if L2 == s:
         return True, "曲柄摇杆机构", ""
     elif L1 == s and L2 != l:
         return True, "曲柄摇杆机构", ""
@@ -42,6 +42,6 @@ print(f"是否有效: {'是' if is_valid else '否'}")
 if is_valid:
     print("\n核心功能测试通过！")
     print("\n请运行以下命令启动应用:")
-    print("  python -m streamlit run app.py")
+    print("  python -m streamlit run app3.py")
 else:
     print(f"\n错误: {error}")

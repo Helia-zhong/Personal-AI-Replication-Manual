@@ -34,6 +34,8 @@
 | AutoRisk Lab | 场景风险分析、标注样例与评估工作台 | [打开](AutoRisk-Lab/web/index.html) |
 | Vehicle Manual RAG Copilot | 本地手册检索问答助手 | [打开](Vehicle-Manual-RAG-Copilot/web/index.html) |
 | Parking Planner Lab | A* 路径规划、障碍物与动画回放实验 | [打开](Parking-Planner-Lab/web/index.html) |
+| Mechanism Kinematics Lab | 曲柄摇杆机构运动学求解、轨迹可视化与传动角监控 | [打开](https://personal-ai-replication-manual-zu9q4eze6ixxk43nqpz6bf.streamlit.app) |
+| Industrial Motor Health Dashboard | 工业电机转速、轴承温度与超温预警监测 | [打开](Industrial-Motor-Health-Dashboard/index.html) |
 
 ## 本地运行
 
@@ -44,7 +46,15 @@ cd Personal-AI-Replication-Manual
 
 大多数浏览器项目可以直接双击对应目录下的 `index.html` 或 `web/index.html`。
 
-需要后端的项目在各自目录中提供 `backend/requirements.txt` 和启动说明。
+机构运动学项目需要 Python 环境：
+
+```bash
+cd Mechanism-Kinematics-Lab
+python -m pip install -r requirements.txt
+python -m streamlit run app3.py
+```
+
+其他项目的具体启动方式以各自目录中的 README 为准。
 
 ## GitHub Pages
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import SpeedGauge from './components/SpeedGauge'
-import TemperatureChart from './components/TemperatureChart'
-import WarningAlert from './components/WarningAlert'
+import SpeedGauge from './SpeedGauge.jsx'
+import TemperatureChart from './TemperatureChart.jsx'
+import WarningAlert from './WarningAlert.jsx'
 
 function App() {
   const [rpm, setRpm] = useState(1550)
