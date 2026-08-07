@@ -24,7 +24,7 @@
 | Agent Run Monitor | 多页面 Agent Trace、异常诊断、运行健康度与成本性能控制台 | [打开](Agent-Run-Monitor/web/index.html) |
 | AI Content QA Workbench | 多页面声明复核、证据核验、发布门禁与审核报告工作台 | [打开](AI-Content-QA-Workbench/web/index.html) |
 | Model Router Sandbox | 四页可解释模型路由台、硬约束诊断、模型目录与实时策略实验 | [打开](Model-Router-Sandbox/web/index.html) |
-| AI Dataset Curation Lab | 数据集质检、重复检测、泄漏检查与样本评分 | [打开](AI-Dataset-Curation-Lab/web/index.html) |
+| AI Dataset Curation Lab | 四页数据质量工作台、样本复核、完整性扫描与可调发布门禁 | [打开](AI-Dataset-Curation-Lab/web/index.html) |
 | AI Connect Four Arena | 四子棋 AI 对战、局面搜索、挑战样例和报告导出 | [打开](AI-Connect-Four-Arena/web/index.html) |
 | AI Video Insight Lab | 视频场景理解、字幕覆盖、OCR、高光分析和报告导出 | [打开](AI-Video-Insight-Lab/web/index.html) |
 | AutoVision Copilot | VLM 场景理解与风险问答演示 | [打开](AutoVision-Copilot/index.html) |
