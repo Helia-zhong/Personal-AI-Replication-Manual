@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PromptOps 版本对比、回归分析与报告导出">
+  <title>对比报告 | PromptOps Evaluation Lab</title>
+  <link rel="stylesheet" href="styles.css?v=2.0.0">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="app.js?v=2.0.0" defer></script>
+</head>
+<body data-page="reports">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html"><span class="brand-mark">PO</span><span class="brand-copy"><strong>PromptOps</strong><small>EVALUATION LAB</small></span></a>
+      <div class="workspace-label"><span class="workspace-dot"></span><span><b>Production QA</b><small>Local workspace</small></span></div>
+      <nav class="primary-nav" aria-label="主导航">
+        <p class="nav-heading">WORKSPACE</p>
+        <a class="nav-link" href="index.html"><i data-lucide="layout-dashboard"></i><span>评估总览</span></a>
+        <a class="nav-link" href="versions.html"><i data-lucide="git-branch"></i><span>版本管理</span></a>
+        <a class="nav-link" href="datasets.html"><i data-lucide="database"></i><span>测试数据</span><b id="navCaseCount">5</b></a>
+        <a class="nav-link active" href="reports.html" aria-current="page"><i data-lucide="chart-no-axes-combined"></i><span>对比报告</span></a>
+      </nav>
+      <div class="sidebar-footer"><span><i data-lucide="circle-check"></i> Local simulator ready</span><a href="../README.md"><i data-lucide="book-open"></i> 项目文档</a></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>PromptOps</span><b>/</b><strong>对比报告</strong></div>
+        <div class="topbar-actions"><span class="environment"><span></span> LIVE COMPARISON</span><a class="icon-button" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading report-heading">
+          <div><p class="eyebrow">REGRESSION REPORT</p><h1>版本对比报告</h1><p>比较候选版本与基准版本，定位提升、回归与失败用例。</p></div>
+          <div class="heading-actions"><button class="button button-quiet" id="exportMarkdown" type="button"><i data-lucide="file-down"></i><span>导出 Markdown</span></button><button class="button button-primary" id="exportJson" type="button"><i data-lucide="download"></i><span>导出 JSON</span></button></div>
+        </section>
+
+        <section class="comparison-bar">
+          <label><span>基准版本</span><select id="referenceVersion"></select></label>
+          <i data-lucide="arrow-right"></i>
+          <label><span>候选版本</span><select id="candidateVersion"></select></label>
+          <div class="comparison-meta"><span id="comparisonDataset">0 active cases</span><strong id="comparisonTimestamp">实时计算</strong></div>
+        </section>
+
+        <section class="metric-grid" aria-label="对比摘要">
+          <article class="metric-card metric-accent"><span class="metric-label">候选得分</span><strong id="candidateScore">--</strong><small id="candidateScoreMeta">综合得分</small></article>
+          <article class="metric-card"><span class="metric-label">版本变化</span><strong id="scoreDelta">--</strong><small>相对基准</small></article>
+          <article class="metric-card"><span class="metric-label">提升用例</span><strong id="improvedCases">--</strong><small>单例得分提升</small></article>
+          <article class="metric-card"><span class="metric-label">回归用例</span><strong id="regressedCases">--</strong><small>需要复核</small></article>
+        </section>
+
+        <section class="report-grid">
+          <article class="panel dimension-panel">
+            <header class="panel-header"><div><p class="panel-kicker">DIMENSION DELTA</p><h2>评分维度</h2></div><span class="panel-note">REFERENCE / CANDIDATE</span></header>
+            <div class="dimension-comparison" id="dimensionComparison"></div>
+          </article>
+          <article class="panel release-panel">
+            <header class="panel-header"><div><p class="panel-kicker">RELEASE DECISION</p><h2>发布结论</h2></div><span class="status-pill" id="reportStatus">PENDING</span></header>
+            <div class="release-decision" id="releaseDecision"></div>
+          </article>
+        </section>
+
+        <section class="panel case-comparison-panel">
+          <header class="panel-header"><div><p class="panel-kicker">CASE-BY-CASE</p><h2>逐用例对比</h2></div><span class="panel-note" id="comparisonCount">0 CASES</span></header>
+          <div class="table-wrap">
+            <table class="data-table comparison-table">
+              <thead><tr><th>测试用例</th><th>任务</th><th>基准</th><th>候选</th><th>变化</th><th>结论</th></tr></thead>
+              <tbody id="comparisonRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

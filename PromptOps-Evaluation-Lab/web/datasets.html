@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PromptOps 回归测试数据集浏览与管理">
+  <title>测试数据 | PromptOps Evaluation Lab</title>
+  <link rel="stylesheet" href="styles.css?v=2.0.0">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="app.js?v=2.0.0" defer></script>
+</head>
+<body data-page="datasets">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html"><span class="brand-mark">PO</span><span class="brand-copy"><strong>PromptOps</strong><small>EVALUATION LAB</small></span></a>
+      <div class="workspace-label"><span class="workspace-dot"></span><span><b>Production QA</b><small>Local workspace</small></span></div>
+      <nav class="primary-nav" aria-label="主导航">
+        <p class="nav-heading">WORKSPACE</p>
+        <a class="nav-link" href="index.html"><i data-lucide="layout-dashboard"></i><span>评估总览</span></a>
+        <a class="nav-link" href="versions.html"><i data-lucide="git-branch"></i><span>版本管理</span></a>
+        <a class="nav-link active" href="datasets.html" aria-current="page"><i data-lucide="database"></i><span>测试数据</span><b id="navCaseCount">5</b></a>
+        <a class="nav-link" href="reports.html"><i data-lucide="chart-no-axes-combined"></i><span>对比报告</span></a>
+      </nav>
+      <div class="sidebar-footer"><span><i data-lucide="circle-check"></i> Local simulator ready</span><a href="../README.md"><i data-lucide="book-open"></i> 项目文档</a></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>PromptOps</span><b>/</b><strong>测试数据</strong></div>
+        <div class="topbar-actions"><span class="environment"><span></span> EVAL SET v1.4</span><a class="icon-button" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading">
+          <div><p class="eyebrow">REGRESSION DATASET</p><h1>测试数据</h1><p>检查输入、上下文、关键字与格式约束，按需控制回归范围。</p></div>
+          <div class="heading-actions"><button class="button button-quiet" id="resetCases" type="button"><i data-lucide="rotate-ccw"></i><span>重置启用状态</span></button><a class="button button-primary" href="index.html"><i data-lucide="play"></i><span>运行数据集</span></a></div>
+        </section>
+
+        <section class="dataset-summary" aria-label="数据集摘要">
+          <div><span>DATASET</span><strong>promptops-core-v1</strong><small>中文通用任务回归集</small></div>
+          <div><span>ENABLED</span><strong id="enabledCasesMetric">--</strong><small>参与下一次评估</small></div>
+          <div><span>TASK TYPES</span><strong id="taskTypesMetric">--</strong><small>问答、摘要、抽取等</small></div>
+          <div><span>SAFETY CASES</span><strong id="safetyCasesMetric">--</strong><small>必须拒答</small></div>
+        </section>
+
+        <section class="dataset-layout">
+          <article class="panel dataset-panel">
+            <header class="panel-header dataset-tools">
+              <div class="search-box"><i data-lucide="search"></i><input id="caseSearch" type="search" placeholder="搜索 ID、输入或关键字" aria-label="搜索测试用例"></div>
+              <select class="filter-select" id="taskFilter" aria-label="筛选任务类型"><option value="all">全部任务</option></select>
+              <select class="filter-select" id="stateFilter" aria-label="筛选启用状态"><option value="all">全部状态</option><option value="enabled">已启用</option><option value="disabled">已停用</option></select>
+            </header>
+            <div class="table-wrap">
+              <table class="data-table dataset-table">
+                <thead><tr><th>启用</th><th>用例</th><th>任务类型</th><th>输出格式</th><th>约束</th><th></th></tr></thead>
+                <tbody id="datasetRows"></tbody>
+              </table>
+            </div>
+            <div class="table-footer"><span id="datasetResultCount">0 cases</span><span>更改会自动保存</span></div>
+          </article>
+
+          <article class="panel case-detail-panel">
+            <header class="panel-header"><div><p class="panel-kicker">CASE INSPECTOR</p><h2 id="caseDetailTitle">选择一个用例</h2></div><span class="status-pill neutral" id="caseDetailStatus">--</span></header>
+            <div class="case-detail" id="caseDetail"></div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

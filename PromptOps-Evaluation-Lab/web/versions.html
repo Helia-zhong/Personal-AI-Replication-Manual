@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PromptOps Prompt 版本管理与规则检查">
+  <title>版本管理 | PromptOps Evaluation Lab</title>
+  <link rel="stylesheet" href="styles.css?v=2.0.0">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+  <script src="app.js?v=2.0.0" defer></script>
+</head>
+<body data-page="versions">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html"><span class="brand-mark">PO</span><span class="brand-copy"><strong>PromptOps</strong><small>EVALUATION LAB</small></span></a>
+      <div class="workspace-label"><span class="workspace-dot"></span><span><b>Production QA</b><small>Local workspace</small></span></div>
+      <nav class="primary-nav" aria-label="主导航">
+        <p class="nav-heading">WORKSPACE</p>
+        <a class="nav-link" href="index.html"><i data-lucide="layout-dashboard"></i><span>评估总览</span></a>
+        <a class="nav-link active" href="versions.html" aria-current="page"><i data-lucide="git-branch"></i><span>版本管理</span></a>
+        <a class="nav-link" href="datasets.html"><i data-lucide="database"></i><span>测试数据</span><b id="navCaseCount">5</b></a>
+        <a class="nav-link" href="reports.html"><i data-lucide="chart-no-axes-combined"></i><span>对比报告</span></a>
+      </nav>
+      <div class="sidebar-footer"><span><i data-lucide="circle-check"></i> Local simulator ready</span><a href="../README.md"><i data-lucide="book-open"></i> 项目文档</a></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>PromptOps</span><b>/</b><strong>版本管理</strong></div>
+        <div class="topbar-actions"><span class="environment"><span></span> LOCAL DRAFTS</span><a class="icon-button" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading">
+          <div><p class="eyebrow">PROMPT REGISTRY</p><h1>版本管理</h1><p>维护模板、变量和发布状态，草稿只保存在当前浏览器。</p></div>
+          <div class="heading-actions"><button class="button button-quiet" id="duplicateVersion" type="button"><i data-lucide="copy-plus"></i><span>复制版本</span></button><button class="button button-primary" id="saveVersion" type="button"><i data-lucide="save"></i><span>保存草稿</span></button></div>
+        </section>
+
+        <section class="metric-grid compact-metrics" aria-label="版本指标">
+          <article class="metric-card"><span class="metric-label">版本总数</span><strong id="versionCountMetric">--</strong><small>含本地草稿</small></article>
+          <article class="metric-card"><span class="metric-label">已发布</span><strong id="publishedMetric">--</strong><small>生产候选版本</small></article>
+          <article class="metric-card"><span class="metric-label">变量覆盖</span><strong id="variableMetric">--</strong><small>必需变量</small></article>
+          <article class="metric-card metric-accent"><span class="metric-label">规则检查</span><strong id="diagnosticMetric">--</strong><small>当前模板</small></article>
+        </section>
+
+        <section class="version-layout">
+          <article class="panel version-registry">
+            <header class="panel-header"><div><p class="panel-kicker">REGISTRY</p><h2>Prompt 版本</h2></div><span class="panel-note" id="versionRegistryCount">0 versions</span></header>
+            <div class="version-list" id="versionList"></div>
+            <div class="registry-foot"><i data-lucide="hard-drive"></i><span>修改存储于 localStorage，不会上传 Prompt 内容。</span></div>
+          </article>
+
+          <article class="panel editor-panel">
+            <header class="panel-header">
+              <div><p class="panel-kicker">EDITOR</p><h2 id="editorTitle">Prompt 编辑器</h2></div>
+              <span class="status-pill neutral" id="editorState">CLEAN</span>
+            </header>
+            <form class="editor-form" id="versionForm">
+              <div class="field-row">
+                <label class="field"><span>版本名称</span><input id="versionName" type="text" maxlength="48" autocomplete="off"></label>
+                <label class="field"><span>发布状态</span><select id="versionStatus"><option value="draft">Draft</option><option value="review">In review</option><option value="published">Published</option></select></label>
+              </div>
+              <label class="field"><span>版本说明</span><input id="versionDescription" type="text" maxlength="120" autocomplete="off"></label>
+              <label class="field prompt-field"><span>Prompt 模板</span><textarea id="promptTemplate" rows="15" spellcheck="false"></textarea><small><b id="charCount">0</b> characters · 使用 <code>{{input}}</code> 与 <code>{{context}}</code> 插入变量</small></label>
+            </form>
+            <div class="editor-footer">
+              <div class="variable-list" id="variableList"></div>
+              <button class="button button-quiet small" id="resetVersion" type="button"><i data-lucide="rotate-ccw"></i><span>恢复默认</span></button>
+            </div>
+          </article>
+
+          <article class="panel diagnostics-panel">
+            <header class="panel-header"><div><p class="panel-kicker">STATIC ANALYSIS</p><h2>规则检查</h2></div><span class="panel-note">LIVE</span></header>
+            <div class="diagnostic-list" id="diagnosticList"></div>
+            <div class="preview-section"><p class="panel-kicker">RENDER PREVIEW</p><pre id="promptPreview"></pre></div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
