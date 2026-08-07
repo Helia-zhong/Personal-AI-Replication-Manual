@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AgentFlow 运行记录与执行轨迹">
+  <title>Runs · AgentFlow Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="runs">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <a class="brand" href="index.html"><span class="brand-mark">AF</span><span class="brand-copy"><strong>AgentFlow</strong><small>VISUALIZER</small></span></a>
+      <div class="workspace-switcher"><span class="workspace-avatar">P</span><span><strong>Personal Lab</strong><small>Local workspace</small></span><span class="chevron">⌄</span></div>
+      <nav class="nav-group">
+        <p class="nav-label">BUILD</p>
+        <a class="nav-link" data-nav="workspace" href="index.html"><span class="nav-icon">◈</span><span>Workspace</span></a>
+        <a class="nav-link" data-nav="prompts" href="prompts.html"><span class="nav-icon">⌁</span><span>Prompt Lab</span></a>
+        <p class="nav-label nav-label-spaced">OBSERVE</p>
+        <a class="nav-link" data-nav="runs" href="runs.html"><span class="nav-icon">↗</span><span>Runs</span><b class="nav-count" id="runCount">0</b></a>
+        <a class="nav-link" data-nav="settings" href="settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+      </nav>
+      <div class="sidebar-bottom"><div class="status-line"><i class="status-dot"></i><span>Mock runtime online</span></div><a class="github-link" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual" target="_blank" rel="noreferrer"><span>↗</span> Repository</a><span class="version">v0.4.0 · static build</span></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Personal Lab</span><b>/</b><strong>Runs</strong></div>
+        <div class="topbar-actions"><span class="runtime-chip"><i class="status-dot"></i> Trace storage active</span><button class="icon-button" type="button" id="themeToggle" title="切换界面亮度" aria-label="切换界面亮度">◐</button><a class="avatar-button" href="settings.html" title="打开设置" aria-label="打开设置">HZ</a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading">
+          <div><p class="eyebrow">EXECUTION TRACES <span>•</span> LOCAL</p><h1>Run history</h1><p class="heading-copy">检查每次执行的节点状态、耗时、Token 使用与最终输出。</p></div>
+          <div class="heading-actions"><button class="button button-quiet" type="button" id="exportRuns"><span>↓</span> Export JSON</button><a class="button button-primary" href="index.html"><span>▶</span> New run</a></div>
+        </section>
+
+        <section class="metric-row" aria-label="运行概览">
+          <div class="metric-card metric-card-accent"><span class="metric-kicker">TOTAL RUNS</span><strong id="totalRunsMetric">0</strong><small>Stored locally</small></div>
+          <div class="metric-card"><span class="metric-kicker">SUCCESS RATE</span><strong id="runSuccessMetric">—</strong><small>All recorded runs</small></div>
+          <div class="metric-card"><span class="metric-kicker">AVG LATENCY</span><strong id="runLatencyMetric">—</strong><small>Successful executions</small></div>
+          <div class="metric-card"><span class="metric-kicker">TOTAL TOKENS</span><strong id="runTokensMetric">0</strong><small>Mock token usage</small></div>
+        </section>
+
+        <section class="runs-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div><span class="panel-kicker">TRACE INDEX</span><h2>Executions</h2></div>
+              <div class="table-tools"><input class="search-input" id="runSearch" type="search" placeholder="Search run or query"><select class="filter-select" id="statusFilter" aria-label="筛选执行状态"><option value="all">All status</option><option value="success">Success</option><option value="failed">Failed</option></select><button class="icon-button subtle" type="button" id="clearRunFilters" title="清除筛选" aria-label="清除筛选">×</button></div>
+            </div>
+            <div class="run-table-wrap">
+              <table class="run-table">
+                <thead><tr><th>Run ID</th><th>Workflow</th><th>Status</th><th>Latency</th><th>Tokens</th><th>Started</th><th></th></tr></thead>
+                <tbody id="runTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside class="panel detail-panel">
+            <div class="panel-header"><div><span class="panel-kicker">RUN INSPECTOR</span><h2>Execution detail</h2></div><span class="inspector-id" id="detailRunId">—</span></div>
+            <div class="detail-body" id="runDetailBody"></div>
+          </aside>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

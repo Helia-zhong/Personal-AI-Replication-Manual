@@ -18,7 +18,7 @@
 
 | 项目 | 简介 | 在线入口 |
 | --- | --- | --- |
-| AgentFlow Visualizer | LLM 工作流可视化、执行模拟与 Prompt 调试工具 | [打开](AgentFlow-Visualizer/index.html) |
+| AgentFlow Visualizer | 多页面 LLM 工作流实验台、运行轨迹与 Prompt 评估工具 | [打开](AgentFlow-Visualizer/index.html) |
 | PromptOps Evaluation Lab | Prompt 版本管理、测试集评估与评分看板 | [打开](PromptOps-Evaluation-Lab/web/index.html) |
 | RAG Evaluation Studio | RAG 检索、引用召回、答案覆盖与评估看板 | [打开](RAG-Evaluation-Studio/web/index.html) |
 | Agent Run Monitor | AI Agent 运行轨迹、工具调用、重试和成本观测 | [打开](Agent-Run-Monitor/web/index.html) |

@@ -1,49 +1,63 @@
 # AgentFlow Visualizer
 
-AgentFlow Visualizer 是一个浏览器版 LLM 工作流可视化与调试工具，用于展示常见 AI 工作流的节点结构、模拟执行过程，并辅助调试 Prompt 模板。
+AgentFlow Visualizer 是一个多页面 LLM 工作流实验台，用于搭建演示流程、模拟节点执行、查看运行轨迹、调试 Prompt 模板并管理本地运行参数。项目完全运行在浏览器中，不需要后端或构建工具。
 
-## 功能
+## 在线入口
 
-- 工作流模板切换：内置 RAG 问答、思维链推理和多 Agent 协作流程。
-- 流程图可视化：使用 Mermaid 渲染节点与任务流向。
-- 执行模拟：展示总步数、成功步数、耗时、时间线和执行日志。
-- Prompt 调试器：支持 `{{variable}}` 变量插值、JSON 变量输入和渲染预览。
-- 单文件运行：无需构建、无需安装依赖，直接在浏览器打开即可。
+<https://helia-zhong.github.io/Personal-AI-Replication-Manual/AgentFlow-Visualizer/index.html>
 
-## 快速开始
+## 页面结构
 
-1. 下载或克隆仓库。
-2. 打开本目录下的 `index.html`。
-3. 选择一个工作流模板，调整输入变量，然后点击「执行工作流」。
-4. 在 Prompt 调试器中编辑模板和变量，点击「预览渲染结果」查看输出。
+| 页面 | 入口 | 主要内容 |
+| --- | --- | --- |
+| Workspace | `index.html` | 工作流选择、节点画布、执行配置、逐节点动画和结果输出 |
+| Runs | `runs.html` | 运行记录筛选、执行详情、节点轨迹、结果复制和 JSON 导出 |
+| Prompt Lab | `prompts.html` | Prompt 模板、JSON 变量、渲染预览和规则评分 |
+| Settings | `settings.html` | 模型参数、运行策略、主题设置和本地数据管理 |
 
-## 技术栈
+## 核心能力
 
-- HTML
-- CSS
-- Vanilla JavaScript
-- Mermaid CDN
+- 内置 RAG Q&A、Research Agent、Content Review 和 Multi-Agent 四种工作流。
+- 通过独立节点状态展示执行中、成功和失败状态。
+- 保存最近 50 条 Mock 运行记录，并支持筛选、复盘和重放。
+- 支持 `{{variable}}` 和 `{{variable|default}}` Prompt 变量语法。
+- 提供 Prompt 清晰度、变量覆盖、输出约束和安全边界评分。
+- 使用浏览器 `localStorage` 保存运行记录、设置和主题。
+- 桌面端使用固定工作台导航，移动端自动切换为底部导航。
 
-## 文件结构
+## 快速运行
+
+直接打开 `index.html`，或者在本目录启动静态服务器：
+
+```bash
+python -m http.server 8000
+```
+
+然后访问 `http://localhost:8000`。
+
+## 项目结构
 
 ```text
 AgentFlow-Visualizer/
-├── index.html
-└── README.md
+├── index.html       Workspace 工作台
+├── runs.html        运行记录与轨迹复盘
+├── prompts.html     Prompt 调试与评估
+├── settings.html    运行与数据设置
+├── styles.css       共享界面与响应式样式
+├── app.js           工作流、运行记录和页面交互
+└── README.md        项目说明
 ```
 
-## 使用场景
+## 技术栈
 
-- AI 工作流方案展示
-- RAG / CoT / 多 Agent 流程讲解
-- Prompt 模板调试演示
-- 个人作品集中的交互式项目案例
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- Browser LocalStorage
 
-## 注意事项
+## 运行边界
 
-- 当前版本为 Mock 演示，不会真正调用 LLM API。
-- Mermaid 通过 CDN 加载；离线环境下流程图可能无法渲染。
-- 页面中提到的真实 GPT-4o 接入是后续扩展方向，当前未包含 API Key 输入和后端转发逻辑。
+当前版本使用确定性的 Mock 数据，不会调用真实 LLM、搜索服务或向量数据库。设置页面中的模型参数用于展示运行配置，不需要填写 API Key，也不会向外部服务发送内容。
 
 ## License
 

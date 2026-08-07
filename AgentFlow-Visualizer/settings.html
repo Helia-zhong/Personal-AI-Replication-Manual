@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AgentFlow 本地运行设置与数据管理">
+  <title>Settings · AgentFlow Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="settings">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <a class="brand" href="index.html"><span class="brand-mark">AF</span><span class="brand-copy"><strong>AgentFlow</strong><small>VISUALIZER</small></span></a>
+      <div class="workspace-switcher"><span class="workspace-avatar">P</span><span><strong>Personal Lab</strong><small>Local workspace</small></span><span class="chevron">⌄</span></div>
+      <nav class="nav-group">
+        <p class="nav-label">BUILD</p>
+        <a class="nav-link" data-nav="workspace" href="index.html"><span class="nav-icon">◈</span><span>Workspace</span></a>
+        <a class="nav-link" data-nav="prompts" href="prompts.html"><span class="nav-icon">⌁</span><span>Prompt Lab</span></a>
+        <p class="nav-label nav-label-spaced">OBSERVE</p>
+        <a class="nav-link" data-nav="runs" href="runs.html"><span class="nav-icon">↗</span><span>Runs</span><b class="nav-count" id="runCount">0</b></a>
+        <a class="nav-link" data-nav="settings" href="settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+      </nav>
+      <div class="sidebar-bottom"><div class="status-line"><i class="status-dot"></i><span>Mock runtime online</span></div><a class="github-link" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual" target="_blank" rel="noreferrer"><span>↗</span> Repository</a><span class="version">v0.4.0 · static build</span></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Personal Lab</span><b>/</b><strong>Settings</strong></div>
+        <div class="topbar-actions"><span class="runtime-chip"><i class="status-dot"></i> Local configuration</span><button class="icon-button" type="button" id="themeToggle" title="切换界面亮度" aria-label="切换界面亮度">◐</button><a class="avatar-button" href="settings.html" title="打开设置" aria-label="打开设置">HZ</a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading">
+          <div><p class="eyebrow">RUNTIME CONTROL <span>•</span> LOCAL</p><h1>Settings</h1><p class="heading-copy">配置 Mock 运行参数、轨迹记录与本地数据。</p></div>
+          <div class="heading-actions"><button class="button button-quiet" type="button" id="resetSettings"><span>↺</span> Restore defaults</button><button class="button button-primary" type="button" id="saveSettings"><span>✓</span> Save changes</button></div>
+        </section>
+
+        <section class="settings-grid">
+          <form class="panel" id="settingsForm">
+            <div class="panel-header"><div><span class="panel-kicker">RUNTIME PROFILE</span><h2>Execution defaults</h2></div><span class="live-label"><i class="status-dot"></i> Mock only</span></div>
+            <div class="settings-section">
+              <h3>Model behavior</h3><p>Applied to new mock runs and prompt evaluations.</p>
+              <div class="settings-fields">
+                <label class="field"><span>default model</span><select id="modelSetting"><option value="gpt-4.1-mini">gpt-4.1-mini</option><option value="gpt-4.1">gpt-4.1</option><option value="o4-mini">o4-mini</option></select></label>
+                <label class="field"><span>max output tokens</span><input id="maxTokensSetting" type="number" min="256" max="8192" step="128"></label>
+                <label class="field"><span>temperature · <b id="temperatureValue">0.2</b></span><input id="temperatureSetting" type="range" min="0" max="1" step="0.1"></label>
+                <label class="field"><span>retry limit</span><input id="retrySetting" type="number" min="0" max="5"></label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Execution policy</h3><p>Controls trace persistence and simulated retry behavior.</p>
+              <div class="toggle-row"><span class="toggle-copy"><strong>Store execution traces</strong><small>Save run history in browser storage</small></span><label class="switch"><input id="traceSetting" type="checkbox"><span></span></label></div>
+              <div class="toggle-row"><span class="toggle-copy"><strong>Enable response cache</strong><small>Reuse deterministic mock outputs</small></span><label class="switch"><input id="cacheSetting" type="checkbox"><span></span></label></div>
+              <div class="toggle-row"><span class="toggle-copy"><strong>Fail fast</strong><small>Stop remaining nodes after an error</small></span><label class="switch"><input id="failFastSetting" type="checkbox"><span></span></label></div>
+            </div>
+            <div class="settings-section">
+              <h3>Interface</h3><p>Choose the default appearance for this browser.</p>
+              <div class="settings-fields"><label class="field"><span>theme</span><select id="themeSetting"><option value="dark">Dark</option><option value="light">Light</option></select></label></div>
+            </div>
+          </form>
+
+          <div>
+            <section class="panel" style="margin-bottom:14px;">
+              <div class="panel-header"><div><span class="panel-kicker">LOCAL DATA</span><h2>Storage</h2></div><button class="icon-button subtle" type="button" id="exportSettings" title="导出设置" aria-label="导出设置">↓</button></div>
+              <div class="settings-section">
+                <div class="data-stat"><span>Stored runs</span><strong id="storedRuns">0</strong></div>
+                <div class="data-stat"><span>Estimated size</span><strong id="storedDataSize">0 KB</strong></div>
+                <div class="data-stat"><span>Latest run</span><strong id="lastRunTime">Never</strong></div>
+              </div>
+            </section>
+            <section class="panel danger-zone">
+              <div class="panel-header"><div><span class="panel-kicker">DEMO DATA</span><h2>Reset workspace data</h2></div></div>
+              <div class="settings-section"><p style="margin-bottom:14px;">Replace local run history with the original demonstration traces.</p><button class="button button-danger" type="button" id="resetDemoData"><span>↺</span> Restore demo history</button></div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AgentFlow Prompt 模板调试与评估工作台">
+  <title>Prompt Lab · AgentFlow Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="prompts">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <a class="brand" href="index.html"><span class="brand-mark">AF</span><span class="brand-copy"><strong>AgentFlow</strong><small>VISUALIZER</small></span></a>
+      <div class="workspace-switcher"><span class="workspace-avatar">P</span><span><strong>Personal Lab</strong><small>Local workspace</small></span><span class="chevron">⌄</span></div>
+      <nav class="nav-group">
+        <p class="nav-label">BUILD</p>
+        <a class="nav-link" data-nav="workspace" href="index.html"><span class="nav-icon">◈</span><span>Workspace</span></a>
+        <a class="nav-link" data-nav="prompts" href="prompts.html"><span class="nav-icon">⌁</span><span>Prompt Lab</span></a>
+        <p class="nav-label nav-label-spaced">OBSERVE</p>
+        <a class="nav-link" data-nav="runs" href="runs.html"><span class="nav-icon">↗</span><span>Runs</span><b class="nav-count" id="runCount">0</b></a>
+        <a class="nav-link" data-nav="settings" href="settings.html"><span class="nav-icon">⚙</span><span>Settings</span></a>
+      </nav>
+      <div class="sidebar-bottom"><div class="status-line"><i class="status-dot"></i><span>Mock runtime online</span></div><a class="github-link" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual" target="_blank" rel="noreferrer"><span>↗</span> Repository</a><span class="version">v0.4.0 · static build</span></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Personal Lab</span><b>/</b><strong>Prompt Lab</strong></div>
+        <div class="topbar-actions"><span class="runtime-chip"><i class="status-dot"></i> Evaluation ready</span><button class="icon-button" type="button" id="themeToggle" title="切换界面亮度" aria-label="切换界面亮度">◐</button><a class="avatar-button" href="settings.html" title="打开设置" aria-label="打开设置">HZ</a></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="page-heading">
+          <div><p class="eyebrow">PROMPT ENGINEERING <span>•</span> SANDBOX</p><h1>Prompt Lab</h1><p class="heading-copy">渲染变量、检查约束并对模板进行轻量质量评估。</p></div>
+          <div class="heading-actions"><button class="button button-quiet" type="button" id="resetPrompt"><span>↺</span> Reset</button><button class="button button-primary" type="button" id="evaluatePrompt"><span>▶</span> Run evaluation</button></div>
+        </section>
+
+        <section class="metric-row" aria-label="Prompt 概览">
+          <div class="metric-card metric-card-accent"><span class="metric-kicker">PROMPT SCORE</span><strong><span id="promptScore">—</span><small style="display:inline;"> / 100</small></strong><small>Latest evaluation</small></div>
+          <div class="metric-card"><span class="metric-kicker">CHARACTERS</span><strong id="charMetric">0</strong><small>Template length</small></div>
+          <div class="metric-card"><span class="metric-kicker">VARIABLES</span><strong id="varMetric">0</strong><small>Detected placeholders</small></div>
+          <div class="metric-card"><span class="metric-kicker">EST. TOKENS</span><strong id="tokenMetric">0</strong><small>Rendered prompt</small></div>
+        </section>
+
+        <section class="prompt-grid">
+          <div class="panel">
+            <div class="panel-header"><div><span class="panel-kicker">01 / TEMPLATE</span><h2>Prompt editor</h2></div><button class="button button-quiet" type="button" id="renderPrompt"><span>↻</span> Render</button></div>
+            <div class="editor-tabs"><button class="editor-tab active" type="button">Template</button><button class="editor-tab" type="button" disabled>Revision A</button></div>
+            <div class="editor-body">
+              <div class="sample-strip" id="promptSamples"></div>
+              <label class="field"><span>prompt.md</span><textarea class="editor" id="promptTemplate" spellcheck="false"></textarea></label>
+              <label class="field"><span>variables.json</span><textarea class="editor json-editor" id="promptVariables" spellcheck="false"></textarea></label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header"><div><span class="panel-kicker">02 / PREVIEW</span><h2>Rendered contract</h2></div><button class="icon-button subtle" type="button" id="copyPrompt" title="复制渲染结果" aria-label="复制渲染结果">□</button></div>
+            <div class="editor-body">
+              <pre class="preview-box" id="promptPreview"></pre>
+              <div><p class="panel-kicker" style="margin-bottom:8px;">DETECTED VARIABLES</p><div class="variable-list" id="variableList"></div></div>
+            </div>
+            <div class="panel-header"><div><span class="panel-kicker">03 / EVALUATION</span><h2>Quality signals</h2></div><span class="live-label"><i class="status-dot"></i> Rule set v2</span></div>
+            <div class="score-list" id="scoreList">
+              <div class="score-row"><span>Instruction clarity</span><div class="score-bar"><i style="width:0%"></i></div><strong>—</strong></div>
+              <div class="score-row"><span>Variable coverage</span><div class="score-bar"><i style="width:0%"></i></div><strong>—</strong></div>
+              <div class="score-row"><span>Output constraints</span><div class="score-bar"><i style="width:0%"></i></div><strong>—</strong></div>
+              <div class="score-row"><span>Safety boundary</span><div class="score-bar"><i style="width:0%"></i></div><strong>—</strong></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
