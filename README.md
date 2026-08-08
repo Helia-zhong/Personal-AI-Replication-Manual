@@ -26,7 +26,7 @@
 | Model Router Sandbox | 四页可解释模型路由台、硬约束诊断、模型目录与实时策略实验 | [打开](Model-Router-Sandbox/web/index.html) |
 | AI Dataset Curation Lab | 四页数据质量工作台、样本复核、完整性扫描与可调发布门禁 | [打开](AI-Dataset-Curation-Lab/web/index.html) |
 | AI Connect Four Arena | 四页四子棋 AI 对弈、可编辑搜索实验室、挑战基准与本地战绩档案 | [打开](AI-Connect-Four-Arena/web/index.html) |
-| AI Video Insight Lab | 视频场景理解、字幕覆盖、OCR、高光分析和报告导出 | [打开](AI-Video-Insight-Lab/web/index.html) |
+| AI Video Insight Lab | 四页多模态视频质检、镜头审阅、覆盖诊断与可编辑高光决策 | [打开](AI-Video-Insight-Lab/web/index.html) |
 | AutoVision Copilot | VLM 场景理解与风险问答演示 | [打开](AutoVision-Copilot/index.html) |
 | PID Auto Tuning Dashboard | PID 参数调节、智能寻优与响应曲线对比 | [打开](PID-Auto-Tuning-Dashboard/index.html) |
 | Auto Parking Trajectory Simulator | 自动泊车轨迹规划与前端可视化 | [打开](Auto-Parking-Trajectory-Simulator/index.html) |
