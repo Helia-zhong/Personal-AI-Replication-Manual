@@ -115,7 +115,7 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    for (const filename of ['index.html', 'runs.html', 'review.html', 'prompts.html', 'settings.html']) {
+    for (const filename of ['index.html', 'runs.html', 'review.html', 'evals.html', 'prompts.html', 'settings.html']) {
       await page.goto('/' + filename);
       await expect(page.locator('h1')).toBeVisible();
       const layout = await page.evaluate(() => ({

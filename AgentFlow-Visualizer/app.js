@@ -46,7 +46,7 @@
     return '<header class="page-heading"><div><p class="eyebrow">' + kicker + '</p><h1>' + title + '</h1></div><div class="actions">' + actions + '</div></header>';
   }
   function renderShell() {
-    const nav = [['workspace', 'index.html', '工作台', 'workflow'], ['runs', 'runs.html', '运行记录', 'history'], ['review', 'review.html', '审核与报告', 'clipboard-check'], ['prompts', 'prompts.html', '提取指令', 'square-terminal'], ['settings', 'settings.html', '运行设置', 'settings-2']];
+    const nav = [['workspace', 'index.html', '工作台', 'workflow'], ['runs', 'runs.html', '运行记录', 'history'], ['review', 'review.html', '审核与报告', 'clipboard-check'], ['evaluation', 'evals.html', '评测面板', 'chart-no-axes-combined'], ['prompts', 'prompts.html', '提取指令', 'square-terminal'], ['settings', 'settings.html', '运行设置', 'settings-2']];
     $('shell').innerHTML = '<aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">' + icon('workflow') + '</span><span>AgentFlow<small>DOCUMENT OPERATIONS</small></span></a><p class="nav-caption">WORKSPACE / 01</p><nav aria-label="主导航">' + nav.map(([key, href, text, sym]) => '<a href="' + href + '" class="' + (key === page ? 'active' : '') + '"' + (key === page ? ' aria-current="page"' : '') + '>' + icon(sym) + '<span>' + text + '</span></a>').join('') + '</nav><div class="sidebar-foot"><span class="signal"></span><span>' + (online ? 'SQLite · 已连接' : '本机浏览器存储') + '</span><a href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual/tree/main/AgentFlow-Visualizer" target="_blank" rel="noreferrer" aria-label="项目源码" title="项目源码">' + icon('github') + '</a></div></aside><div class="content"><header class="topbar"><span>PERSONAL LAB <b>/</b> ' + nav.find(item => item[0] === page)[2] + '</span><span class="runtime-chip">' + icon(online ? 'server' : 'monitor') + (online ? '本地服务' : '浏览器规则演示') + '</span></header><main id="main"></main><footer class="page-footer"><span>AGENTFLOW / 1.0</span><span>INGEST → EXTRACT → VALIDATE → REVIEW → EXPORT</span></footer></div>';
   }
   function stats() {
@@ -218,6 +218,27 @@
       return saveConfig(next);
     }); icons();
   }
+  function evaluationPage() {
+    const data = globalThis.AgentFlowEvaluation;
+    if (!data?.variants?.length) {
+      $('main').innerHTML = heading('EVALUATION', '评测面板') + empty('尚无评测结果', '运行 scripts/evaluate.py 生成本地评测结果后再刷新页面。'); icons(); return;
+    }
+    const format = value => value == null ? '未返回' : typeof value === 'number' ? value.toFixed(3).replace(/\.000$/, '') : value;
+    const summaries = data.variants.map(variant => variant.summary).filter(Boolean);
+    const best = Math.max(...summaries.map(summary => summary.f1));
+    const failureRows = data.variants.flatMap(variant => variant.rows.filter(row => !row.score.passed).map(row => ({ ...row, variant: variant.label }))).reduce((rows, row) => {
+      const existing = rows.find(item => item.variant === row.variant && item.case_id === row.case_id);
+      if (existing) existing.repeats = (existing.repeats || 1) + 1; else rows.push(row);
+      return rows;
+    }, []);
+    $('main').innerHTML = heading('EVALUATION / ' + esc(data.dataset.version), '评测面板', '<a class="button" href="evals/cases.json" target="_blank" rel="noreferrer">' + icon('file-json') + '查看数据集</a>') +
+      '<div class="evaluation-meta"><span>标注资料 ' + data.dataset.cases.length + ' 组</span><span>执行次数 ' + data.variants.reduce((sum, variant) => sum + variant.rows.length, 0) + '</span><span>生成时间 ' + date(data.completed_at || data.created_at) + '</span></div>' +
+      '<section class="metrics evaluation-metrics">' + [['最佳 F1', format(best), 'trophy'], ['最佳精确率', format(Math.max(...summaries.map(summary => summary.precision))), 'target'], ['最佳召回率', format(Math.max(...summaries.map(summary => summary.recall))), 'scan-search'], ['失败样本', failureRows.length, 'triangle-alert']].map(([text, count, sym]) => '<article>' + icon(sym) + '<span>' + text + '</span><strong>' + count + '</strong></article>').join('') + '</section>' +
+      '<section class="evaluation-section"><div class="section-head"><h2>方案对比</h2><span class="subtle">精确到引用、分类和完整性</span></div><div class="evaluation-table"><div class="evaluation-row evaluation-head"><span>方案</span><span>通过率</span><span>F1</span><span>引用有效率</span><span>耗时 P50</span></div>' + data.variants.map(variant => '<div class="evaluation-row"><strong>' + esc(variant.label) + '</strong><span>' + format(variant.summary.document_pass_rate * 100) + '%</span><span class="mono">' + format(variant.summary.f1) + '</span><span>' + format(variant.summary.evidence_valid_rate * 100) + '%</span><span class="mono">' + format(variant.summary.p50_ms) + ' ms</span></div>').join('') + '</div></section>' +
+      '<section class="evaluation-section"><div class="section-head"><h2>失败案例</h2><span class="subtle">用于下一轮指令和模型回归</span></div>' + (failureRows.length ? '<div class="failure-list">' + failureRows.slice(0, 12).map(row => '<article><div><strong>' + esc(row.variant) + '</strong><span class="badge failed">' + esc(row.case_id) + (row.repeats > 1 ? ' ×' + row.repeats : '') + '</span></div><p>' + esc(row.score.issues.map(issue => issue.code + (issue.line ? ' · L' + issue.line : '')).join('、')) + '</p></article>').join('') + '</div>' : empty('当前没有失败案例', '所有已标注样本均通过。')) + '</section>' +
+      '<section class="evaluation-note"><strong>评测边界</strong><p>' + esc(data.scope) + ' 规则基线用于显示可解释的对照结果；真实模型结果只有在本机安装 Ollama 并运行脚本后才会出现。</p></section>';
+    icons();
+  }
   async function start() {
     if (location.protocol !== 'file:') {
       try {
@@ -232,6 +253,7 @@
     if (page === 'review') await reviewPage();
     if (page === 'prompts') promptsPage();
     if (page === 'settings') settingsPage();
+    if (page === 'evaluation') evaluationPage();
   }
   start().catch(error => { if (!$('main')) renderShell(); $('main').innerHTML = empty('工作区暂时无法打开', error.message) + '<a class="button" href="index.html">返回工作台</a>'; icons(); });
   window.addEventListener('pagehide', () => clearTimeout(pollTimer));

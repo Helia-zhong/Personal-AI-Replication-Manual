@@ -102,7 +102,7 @@ def create_app(db_path=None, extractor=None):
 
     @app.get("/{filename}")
     def page(filename: str):
-        if filename not in {"index.html", "runs.html", "review.html", "prompts.html", "settings.html", "app.js", "engine.js", "styles.css"}:
+        if filename not in {"index.html", "runs.html", "review.html", "evals.html", "prompts.html", "settings.html", "app.js", "engine.js", "styles.css"}:
             raise HTTPException(404)
         return FileResponse(ROOT / filename)
 

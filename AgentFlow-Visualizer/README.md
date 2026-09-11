@@ -2,7 +2,7 @@
 
 面向资料整理的可追踪工作流：导入文本，提取资料要点、决定和待办，校验原文引用，经人工审核后导出报告。结果来自本次输入；运行配置、原始输出和审核结果分别保存。
 
-[在线规则演示](https://helia-zhong.github.io/Personal-AI-Replication-Manual/AgentFlow-Visualizer/index.html) · [架构与设计取舍](docs/architecture.md) · [验证记录](docs/validation.md)
+[在线规则演示](https://helia-zhong.github.io/Personal-AI-Replication-Manual/AgentFlow-Visualizer/index.html) · [评测面板](evals.html) · [架构与设计取舍](docs/architecture.md) · [验证记录](docs/validation.md)
 
 ![AgentFlow 工作台](docs/workspace.png)
 
@@ -17,6 +17,7 @@
 - 任务取消、连接与超时重试、服务重启后的中断标记、手动重新运行与父任务关联。
 - Ollama 模型调用通过异步 HTTP 执行，结构化结果经 Pydantic 和原文匹配双重校验。
 - 界面展示实测步骤耗时；Token 仅采用模型接口实际返回的数据，不计算虚构成本。
+- 评测面板提供 12 组中英文合成资料、规则基线、失败案例和可复现的 Ollama 评测脚本。
 
 ## 三种运行方式
 
@@ -64,6 +65,24 @@ python3 -m venv .venv
 
 本次机器未安装或运行 Ollama；已验证 HTTP 请求契约、响应校验、超时和重试，尚未完成真实模型的质量与速度评测。
 
+## 评测与失败分析
+
+评测数据位于 `evals/cases.json`，包含显式分类、隐含语义、否定句、引用关键词、重复文本、Markdown 行号、夹带指令、HTML 文本和空内容拒答。每个样本的标注要求同时检查类别、原文行号、引用片段和是否应拒答。
+
+先运行规则基线：
+
+~~~powershell
+.\.venv\Scripts\python.exe scripts/evaluate.py --repeats 2 --publish
+~~~
+
+真实 Ollama 评测需要本机已安装并运行服务，并传入已安装模型的完整名称：
+
+~~~powershell
+.\.venv\Scripts\python.exe scripts/evaluate.py --model qwen2.5:1.5b --repeats 2 --publish
+~~~
+
+脚本会保存每次输入、结构化输出、原文校验、错误代码、耗时和模型返回的 Token 字段；`--publish` 只允许把仓库内的合成资料结果更新到 `evals/published.json` 和网站数据文件。评测是作者标注的小型回归集，不是独立测试集，也不代表通用准确率。
+
 ## 走通一次完整流程
 
 1. 在工作台导入自己的 TXT / Markdown，或使用内置示例。
@@ -99,6 +118,7 @@ AgentFlow-Visualizer/
     runtime.py         任务调度、Ollama 适配器、SQLite
   assets/              本地 Lucide 图标及许可证
   docs/                架构、验证记录与界面截图
+  evals/               标注数据、Prompt 变体与已发布评测结果
   scripts/             图标打包、可复现验证
   tests/               Python、JavaScript 与 Playwright 测试
   index.html           工作台
@@ -106,6 +126,7 @@ AgentFlow-Visualizer/
   review.html          审核与报告
   prompts.html         提取指令
   settings.html        运行设置
+  evals.html           评测面板
   app.js               交互、API 客户端、演示运行
   engine.js            浏览器规则与引用校验
   styles.css           响应式视觉
@@ -146,6 +167,7 @@ UI 测试自行在 8092 端口启动独立后端，使用 `.agentflow/ui-tests.s
 - 手动重试创建新任务并从头执行，继承原配置。要修改配置或原文，请从工作台新建任务。
 - 浏览器演示保存最多 100 条记录。不同浏览器对 file:// 存储的隔离方式可能不同，长期保存建议使用本地后端。
 - 此版本导入纯文本和 Markdown；扫描 PDF、OCR、外部搜索及附件解析不在当前支持范围内。
+- 评测结果页只展示已发布的合成资料结果；真实模型结果不会自动调用或上传模型服务。
 - 新版没有迁移旧版模拟运行记录；旧的 LocalStorage 键未被删除，历史代码仍可通过 Git 提交查看。
 
 ## License
