@@ -1,0 +1,14 @@
+{
+  "name": "agentflow-visualizer",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test tests/engine.test.cjs",
+    "test:ui": "playwright test",
+    "vendor": "node scripts/vendor.cjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "lucide": "1.45.0"
+  }
+}

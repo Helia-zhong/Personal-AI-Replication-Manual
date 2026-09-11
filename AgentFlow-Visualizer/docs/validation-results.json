@@ -1,0 +1,42 @@
+{
+  "python": "3.12.14",
+  "platform": "Windows",
+  "mode": "rules",
+  "synthetic_cases": 4,
+  "scope": "Correctness/parity smoke set; not model-quality or production-performance evidence.",
+  "median_processing_ms": 17.283,
+  "cases": [
+    {
+      "case": "chinese-minutes",
+      "items": 3,
+      "status": "succeeded",
+      "rule_parity": true,
+      "processing_ms": 16.603,
+      "verification_wall_ms": 103.646
+    },
+    {
+      "case": "english-actions",
+      "items": 3,
+      "status": "succeeded",
+      "rule_parity": true,
+      "processing_ms": 16.865,
+      "verification_wall_ms": 100.977
+    },
+    {
+      "case": "markdown-lines",
+      "items": 3,
+      "status": "succeeded",
+      "rule_parity": true,
+      "processing_ms": 20.112,
+      "verification_wall_ms": 98.865
+    },
+    {
+      "case": "literal-markup",
+      "items": 2,
+      "status": "succeeded",
+      "rule_parity": true,
+      "processing_ms": 17.701,
+      "verification_wall_ms": 97.496
+    }
+  ]
+}

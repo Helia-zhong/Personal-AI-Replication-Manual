@@ -1,714 +1,238 @@
-const STORAGE_KEYS = {
-  runs: 'agentflow.runs.v4',
-  settings: 'agentflow.settings.v4',
-  selectedFlow: 'agentflow.selected-flow.v4',
-  theme: 'agentflow.theme.v4',
-  replay: 'agentflow.replay.v4'
-};
-
-const WORKFLOWS = {
-  rag_qa: {
-    id: 'rag_qa',
-    short: 'RAG',
-    name: 'RAG Q&A',
-    category: 'Knowledge retrieval',
-    summary: '5 nodes · retrieval pipeline',
-    description: 'Grounded answers with retrieval and citation checks.',
-    output: '检索阶段命中 4 个相关片段，生成阶段已基于引用内容完成回答。工作流编排通过定义节点、依赖关系与运行状态，把复杂任务拆成可观测、可重试的执行单元。',
-    nodes: [
-      { id: 'input', name: 'Input contract', type: 'input', detail: 'Normalize query and context', duration: 0.2, model: 'Schema v2', tokens: 0 },
-      { id: 'embed', name: 'Embed query', type: 'llm', detail: 'Create semantic representation', duration: 0.8, model: 'text-embed-3', tokens: 142 },
-      { id: 'retrieve', name: 'Retrieve context', type: 'tool', detail: 'Top-k hybrid knowledge search', duration: 0.5, model: 'Vector store', tokens: 860 },
-      { id: 'answer', name: 'Generate answer', type: 'llm', detail: 'Compose grounded response', duration: 1.5, model: 'gpt-4.1-mini', tokens: 1240 },
-      { id: 'guard', name: 'Citation guard', type: 'agent', detail: 'Verify coverage and claims', duration: 0.4, model: 'Rule + LLM', tokens: 310 }
-    ]
-  },
-  research: {
-    id: 'research',
-    short: 'RS',
-    name: 'Research Agent',
-    category: 'Agentic research',
-    summary: '6 nodes · parallel tools',
-    description: 'Plan, search, synthesize and review a research brief.',
-    output: '研究计划已拆解为 3 个检索方向，共整理 8 条证据并完成交叉核验。最终简报包含结论、证据强度和需要进一步验证的开放问题。',
-    nodes: [
-      { id: 'scope', name: 'Scope request', type: 'input', detail: 'Define goal and constraints', duration: 0.2, model: 'Schema v2', tokens: 0 },
-      { id: 'plan', name: 'Plan research', type: 'agent', detail: 'Break down evidence questions', duration: 0.9, model: 'gpt-4.1-mini', tokens: 420 },
-      { id: 'search', name: 'Search sources', type: 'tool', detail: 'Collect candidate evidence', duration: 1.2, model: 'Search adapter', tokens: 690 },
-      { id: 'extract', name: 'Extract claims', type: 'llm', detail: 'Normalize facts and citations', duration: 1.1, model: 'gpt-4.1-mini', tokens: 1040 },
-      { id: 'synthesize', name: 'Synthesize brief', type: 'agent', detail: 'Compose structured report', duration: 1.6, model: 'gpt-4.1', tokens: 1460 },
-      { id: 'review', name: 'Evidence review', type: 'agent', detail: 'Check gaps and conflicts', duration: 0.7, model: 'Review policy', tokens: 510 }
-    ]
-  },
-  qa_review: {
-    id: 'qa_review',
-    short: 'QA',
-    name: 'Content Review',
-    category: 'Quality assurance',
-    summary: '5 nodes · policy checks',
-    description: 'Inspect generated content for claims, sources and risk.',
-    output: '内容审查完成：12 条陈述中 10 条有明确来源，2 条需要弱化措辞。整体风险为低，建议在发布前补充一处时间范围说明。',
-    nodes: [
-      { id: 'ingest', name: 'Ingest draft', type: 'input', detail: 'Parse content and metadata', duration: 0.2, model: 'Document parser', tokens: 0 },
-      { id: 'claims', name: 'Extract claims', type: 'llm', detail: 'Identify verifiable statements', duration: 0.8, model: 'gpt-4.1-mini', tokens: 720 },
-      { id: 'sources', name: 'Match sources', type: 'tool', detail: 'Resolve supporting evidence', duration: 0.7, model: 'Citation index', tokens: 480 },
-      { id: 'risk', name: 'Classify risk', type: 'agent', detail: 'Apply content policy', duration: 0.6, model: 'QA policy', tokens: 360 },
-      { id: 'decision', name: 'Review decision', type: 'agent', detail: 'Return fixes and verdict', duration: 0.9, model: 'gpt-4.1-mini', tokens: 590 }
-    ]
-  },
-  multi_agent: {
-    id: 'multi_agent',
-    short: 'MA',
-    name: 'Multi-Agent',
-    category: 'Collaborative agents',
-    summary: '6 nodes · supervisor loop',
-    description: 'Coordinate planning, execution and independent review.',
-    output: 'Supervisor 已完成任务分派。Researcher 提供事实材料，Writer 生成结构化结果，Reviewer 给出通过结论；本次执行没有触发重试。',
-    nodes: [
-      { id: 'intake', name: 'Task intake', type: 'input', detail: 'Validate task contract', duration: 0.2, model: 'Schema v2', tokens: 0 },
-      { id: 'supervisor', name: 'Supervisor', type: 'agent', detail: 'Plan and route work', duration: 0.8, model: 'gpt-4.1-mini', tokens: 390 },
-      { id: 'researcher', name: 'Researcher', type: 'agent', detail: 'Collect task evidence', duration: 1.3, model: 'gpt-4.1-mini', tokens: 980 },
-      { id: 'writer', name: 'Writer', type: 'agent', detail: 'Create final artifact', duration: 1.5, model: 'gpt-4.1', tokens: 1360 },
-      { id: 'reviewer', name: 'Reviewer', type: 'agent', detail: 'Evaluate against rubric', duration: 0.9, model: 'gpt-4.1-mini', tokens: 610 },
-      { id: 'finalize', name: 'Finalize output', type: 'tool', detail: 'Package result and trace', duration: 0.3, model: 'Output adapter', tokens: 0 }
-    ]
-  }
-};
-
-const PROMPT_SAMPLES = [
-  {
-    id: 'grounded',
-    name: 'Grounded answer',
-    template: '你是一个严谨的知识助手。\n\n上下文：\n{{context}}\n\n问题：{{query}}\n\n仅依据上下文回答，并在每个关键结论后标注引用编号。若信息不足，明确说明缺口。',
-    variables: { query: '工作流编排的核心价值是什么？', context: '[1] 工作流编排用于协调多个任务、工具和服务的执行顺序。\n[2] 可观测性能够记录节点状态、延迟与错误。' }
-  },
-  {
-    id: 'reviewer',
-    name: 'Quality reviewer',
-    template: '审查以下 AI 输出。\n\n任务目标：{{goal}}\n输出内容：{{content}}\n\n按准确性、完整性、可验证性评分，并返回最多 3 条具体修改建议。',
-    variables: { goal: '解释 RAG 的工作机制', content: 'RAG 会先检索外部知识，再把相关内容提供给生成模型。' }
-  },
-  {
-    id: 'planner',
-    name: 'Agent planner',
-    template: '将任务拆解为可执行计划：{{task}}\n\n约束：{{constraints|无额外约束}}\n\n返回 JSON，字段包含 steps、dependencies、success_criteria。',
-    variables: { task: '整理一份 AI 产品竞品研究报告', constraints: '24 小时内完成，最多使用 5 个来源' }
-  }
-];
-
-const DEFAULT_SETTINGS = {
-  model: 'gpt-4.1-mini',
-  temperature: 0.2,
-  maxTokens: 2200,
-  retryLimit: 2,
-  traces: true,
-  cache: true,
-  failFast: false,
-  theme: 'dark'
-};
-
-function storageGet(key, fallback) {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function storageSet(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    showToast('浏览器未开放本地存储，本次更改只在当前页面有效。');
-  }
-}
-
-function seedRuns() {
-  const now = Date.now();
-  return [
-    buildSeedRun('run-a73f2c', 'rag_qa', 'success', 3.4, 2552, now - 8 * 60 * 1000, '解释工作流编排如何提升 Agent 可观测性。'),
-    buildSeedRun('run-3d91be', 'research', 'success', 5.7, 4120, now - 42 * 60 * 1000, '整理一份多 Agent 协作模式研究简报。'),
-    buildSeedRun('run-f1c84d', 'qa_review', 'success', 3.2, 2180, now - 2.4 * 60 * 60 * 1000, '审查 AI 生成内容中的引用覆盖情况。'),
-    buildSeedRun('run-8b4a11', 'multi_agent', 'failed', 2.9, 1640, now - 5.6 * 60 * 60 * 1000, '协作生成模型评估报告。'),
-    buildSeedRun('run-42ce90', 'rag_qa', 'success', 3.1, 2380, now - 22 * 60 * 60 * 1000, 'RAG 在企业知识库中的主要风险是什么？')
-  ];
-}
-
-function buildSeedRun(id, workflowId, status, duration, tokens, createdAt, query) {
-  const flow = WORKFLOWS[workflowId];
-  return {
-    id,
-    workflowId,
-    workflow: flow.name,
-    status,
-    duration,
-    tokens,
-    createdAt,
-    query,
-    output: status === 'success' ? flow.output : 'Execution stopped after a simulated tool timeout.',
-    steps: flow.nodes.map((node, index) => ({
-      name: node.name,
-      type: node.type,
-      duration: node.duration,
-      status: status === 'failed' && index === 3 ? 'failed' : index > 3 && status === 'failed' ? 'skipped' : 'success'
-    }))
-  };
-}
-
-function getRuns() {
-  const stored = storageGet(STORAGE_KEYS.runs, null);
-  if (Array.isArray(stored) && stored.length) return stored;
-  const seeded = seedRuns();
-  storageSet(STORAGE_KEYS.runs, seeded);
-  return seeded;
-}
-
-function getSettings() {
-  return Object.assign({}, DEFAULT_SETTINGS, storageGet(STORAGE_KEYS.settings, {}));
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function formatRelative(timestamp) {
-  const diff = Math.max(0, Date.now() - Number(timestamp));
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
-function formatTokens(tokens) {
-  return tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}k` : String(tokens);
-}
-
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add('show');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2600);
-}
-
-function setTheme(theme) {
-  document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
-  try { localStorage.setItem(STORAGE_KEYS.theme, theme); } catch {}
-}
-
-function initCommon() {
+(function () {
+  'use strict';
+  const E = globalThis.AgentFlowEngine;
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[x]));
+  const icon = name => '<i data-lucide="' + name + '" aria-hidden="true"></i>';
+  const labels = { queued: '排队中', running: '处理中', awaiting_review: '待审核', succeeded: '已完成', failed: '失败', cancelled: '已取消', rejected: '已退回', pending: '待执行' };
+  const stageNames = ['资料接收', '结构化提取', '引用校验', '人工审核', '报告导出'];
+  const stageIcons = ['file-input', 'scan-text', 'list-checks', 'user-check', 'file-down'];
   const page = document.body.dataset.page;
-  document.querySelectorAll('[data-nav]').forEach(link => {
-    link.classList.toggle('active', link.dataset.nav === page);
-  });
-  const count = document.getElementById('runCount');
-  if (count) count.textContent = getRuns().length;
-
-  let theme = 'dark';
-  try { theme = localStorage.getItem(STORAGE_KEYS.theme) || getSettings().theme || 'dark'; } catch {}
-  setTheme(theme);
-  const toggle = document.getElementById('themeToggle');
-  if (toggle) {
-    toggle.addEventListener('click', () => {
-      const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-      setTheme(next);
-      showToast(next === 'light' ? '已切换到明亮界面。' : '已切换到深色界面。');
+  const keys = { runs: 'agentflow.v1.runs', settings: 'agentflow.v1.settings', input: 'agentflow.v1.input' };
+  const sample = { title: '知识库产品周会', source: '# 知识库产品周会\n日期：2026-09-10\n\n现状：当前用户反馈集中在文档导入和引用定位。\n决定：本轮采用按段落切分，保留文件名和原始行号。\n待办：林同学在周五前补充 20 个带来源的问题。\n待办：陈同学负责回归测试，覆盖空文档和引用缺失。\n风险：扫描 PDF 的文字识别仍需单独验证。\n决定：先完成文本资料导入，再评估扫描件支持。' };
+  let online = false, config = { ...E.defaults }, allRuns = [], pollTimer, pending = false;
+  function toast(message) {
+    $('toast').textContent = message; $('toast').classList.add('show');
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => $('toast').classList.remove('show'), 4500);
+  }
+  function read(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+  }
+  function write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); }
+    catch { throw new Error('本地存储不可用或已满，请释放空间后重试'); }
+  }
+  async function api(path, method = 'GET', body) {
+    const res = await fetch('/api/' + path, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(12000) });
+    const data = await res.json().catch(() => ({ detail: '服务没有返回有效 JSON' }));
+    if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '输入格式有误，请检查字段及长度');
+    return data;
+  }
+  const badge = status => '<span class="badge ' + esc(status) + '">' + esc(labels[status] || status) + '</span>';
+  const modeName = run => run.settings.mode === 'ollama' ? 'Ollama · ' + run.settings.model : run.settings.mode === 'browser-rules' ? '浏览器规则演示' : '本地规则处理';
+  const date = value => new Date(value).toLocaleString('zh-CN', { hour12: false });
+  const duration = run => {
+    const ms = run.steps.reduce((total, step) => total + (step.duration_ms || 0), 0);
+    return ms < 1000 ? ms.toFixed(1) + ' ms' : (ms / 1000).toFixed(2) + ' s';
+  };
+  const icons = () => globalThis.lucide?.createIcons();
+  const empty = (title, text) => '<div class="empty">' + icon('inbox') + '<h3>' + esc(title) + '</h3><p>' + esc(text) + '</p></div>';
+  function bind(id, event, fn) {
+    $(id)?.addEventListener(event, async e => {
+      try { await fn(e); } catch (error) { toast(error.message || '操作失败'); }
     });
   }
-}
-
-function initWorkspace() {
-  const picker = document.getElementById('workflowPicker');
-  if (!picker) return;
-  let currentId = storageGet(STORAGE_KEYS.selectedFlow, 'rag_qa');
-  if (!WORKFLOWS[currentId]) currentId = 'rag_qa';
-  let selectedNode = 0;
-  let isRunning = false;
-
-  function currentFlow() {
-    return WORKFLOWS[currentId];
+  function heading(kicker, title, actions = '') {
+    return '<header class="page-heading"><div><p class="eyebrow">' + kicker + '</p><h1>' + title + '</h1></div><div class="actions">' + actions + '</div></header>';
   }
-
-  function renderPicker() {
-    picker.innerHTML = Object.values(WORKFLOWS).map(flow => `
-      <button class="workflow-choice ${flow.id === currentId ? 'active' : ''}" type="button" data-flow="${flow.id}">
-        <strong>${escapeHtml(flow.name)}</strong><span>${escapeHtml(flow.category)}</span>
-      </button>`).join('');
+  function renderShell() {
+    const nav = [['workspace', 'index.html', '工作台', 'workflow'], ['runs', 'runs.html', '运行记录', 'history'], ['review', 'review.html', '审核与报告', 'clipboard-check'], ['prompts', 'prompts.html', '提取指令', 'square-terminal'], ['settings', 'settings.html', '运行设置', 'settings-2']];
+    $('shell').innerHTML = '<aside class="sidebar"><a class="brand" href="index.html"><span class="brand-mark">' + icon('workflow') + '</span><span>AgentFlow<small>DOCUMENT OPERATIONS</small></span></a><p class="nav-caption">WORKSPACE / 01</p><nav aria-label="主导航">' + nav.map(([key, href, text, sym]) => '<a href="' + href + '" class="' + (key === page ? 'active' : '') + '"' + (key === page ? ' aria-current="page"' : '') + '>' + icon(sym) + '<span>' + text + '</span></a>').join('') + '</nav><div class="sidebar-foot"><span class="signal"></span><span>' + (online ? 'SQLite · 已连接' : '本机浏览器存储') + '</span><a href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual/tree/main/AgentFlow-Visualizer" target="_blank" rel="noreferrer" aria-label="项目源码" title="项目源码">' + icon('github') + '</a></div></aside><div class="content"><header class="topbar"><span>PERSONAL LAB <b>/</b> ' + nav.find(item => item[0] === page)[2] + '</span><span class="runtime-chip">' + icon(online ? 'server' : 'monitor') + (online ? '本地服务' : '浏览器规则演示') + '</span></header><main id="main"></main><footer class="page-footer"><span>AGENTFLOW / 1.0</span><span>INGEST → EXTRACT → VALIDATE → REVIEW → EXPORT</span></footer></div>';
   }
-
-  function renderFlow() {
-    const flow = currentFlow();
-    const stage = document.getElementById('flowStage');
-    stage.innerHTML = `<div class="flow-rail">${flow.nodes.map((node, index) => `
-      <button class="flow-node ${index === selectedNode ? 'selected' : ''}" type="button" data-node="${index}">
-        <span class="node-sequence">${String(index + 1).padStart(2, '0')}</span>
-        <span class="node-main"><strong>${escapeHtml(node.name)}</strong><small>${escapeHtml(node.detail)}</small></span>
-        <span class="node-type ${node.type}">${escapeHtml(node.type)}</span>
-      </button>`).join('')}</div>`;
-    document.getElementById('flowSummary').textContent = flow.summary;
-    document.getElementById('activeFlowMetric').textContent = flow.name;
-    renderInspector(selectedNode);
+  function stats() {
+    const completed = allRuns.filter(run => run.status === 'succeeded').length;
+    const awaiting = allRuns.filter(run => run.status === 'awaiting_review').length;
+    const failures = allRuns.filter(run => run.status === 'failed').length;
+    return '<section class="metrics" aria-label="最近 100 条运行统计">' + [['最近运行', allRuns.length, 'layers'], ['待人工审核', awaiting, 'user-check'], ['已生成报告', completed, 'files'], ['失败记录', failures, 'circle-alert']].map(([text, count, sym]) => '<article>' + icon(sym) + '<span>' + text + '</span><strong>' + count + '</strong></article>').join('') + '</section>';
   }
-
-  function renderSelectedFlow() {
-    const flow = currentFlow();
-    document.getElementById('selectedFlow').innerHTML = `
-      <span class="flow-monogram">${escapeHtml(flow.short)}</span>
-      <span><strong>${escapeHtml(flow.name)}</strong><small>${escapeHtml(flow.description)}</small></span>
-      <b>READY</b>`;
+  function flow(steps) {
+    return '<ol class="flow-map">' + E.stages.map((id, index) => {
+      const step = steps?.[index] || { status: 'pending' };
+      return '<li class="' + esc(step.status) + '"><span class="node-icon">' + icon(stageIcons[index]) + '</span><span class="node-number">0' + (index + 1) + '</span><strong>' + stageNames[index] + '</strong><small>' + (step.duration_ms != null ? (step.duration_ms < 1 ? '&lt; 1' : step.duration_ms.toFixed(1)) + ' ms' : labels[step.status]) + '</small></li>';
+    }).join('') + '</ol>';
   }
-
-  function renderInspector(index) {
-    const node = currentFlow().nodes[index] || currentFlow().nodes[0];
-    selectedNode = Math.max(0, index);
-    document.getElementById('inspectorId').textContent = `NODE-${String(selectedNode + 1).padStart(2, '0')}`;
-    document.getElementById('inspectorContent').innerHTML = `
-      <div class="inspector-title"><span class="flow-monogram">${escapeHtml(node.type.slice(0, 2).toUpperCase())}</span><span><strong>${escapeHtml(node.name)}</strong><small>${escapeHtml(node.detail)}</small></span></div>
-      <div class="inspector-grid">
-        <div class="inspector-stat"><small>Node type</small><strong>${escapeHtml(node.type)}</strong></div>
-        <div class="inspector-stat"><small>Runtime</small><strong>${node.duration.toFixed(1)} sec</strong></div>
-        <div class="inspector-stat"><small>Adapter</small><strong>${escapeHtml(node.model)}</strong></div>
-        <div class="inspector-stat"><small>Token budget</small><strong>${formatTokens(node.tokens || 0)}</strong></div>
-      </div>`;
+  function runRows(runs) {
+    if (!runs.length) return empty('还没有运行记录', '新建资料任务后，运行状态与报告会出现在这里。');
+    return '<div class="run-table"><div class="table-head"><span>任务 / 执行方式</span><span>状态</span><span>处理耗时</span><span>创建时间</span><span></span></div>' + runs.map(run => '<a class="run-row" href="review.html?id=' + encodeURIComponent(run.id) + '"><div><strong>' + esc(run.title) + '</strong><small>' + esc(modeName(run)) + '</small></div>' + badge(run.status) + '<span class="mono">' + duration(run) + '</span><time>' + date(run.created_at) + '</time>' + icon('arrow-up-right') + '</a>').join('') + '</div>';
   }
-
-  function renderMetrics() {
-    const runs = getRuns();
-    const recent = runs.slice(0, 20);
-    const successful = recent.filter(run => run.status === 'success');
-    const today = runs.filter(run => Date.now() - run.createdAt < 24 * 60 * 60 * 1000);
-    const average = successful.length ? successful.reduce((sum, run) => sum + Number(run.duration), 0) / successful.length : 0;
-    document.getElementById('runsTodayMetric').textContent = today.length;
-    document.getElementById('avgLatencyMetric').textContent = average ? `${average.toFixed(1)}s` : '—';
-    document.getElementById('successRateMetric').textContent = recent.length ? `${Math.round(successful.length / recent.length * 100)}%` : '—';
-    const count = document.getElementById('runCount');
-    if (count) count.textContent = runs.length;
+  async function loadRuns() { allRuns = online ? await api('runs') : read(keys.runs, []); return allRuns; }
+  async function getRun(id) {
+    const run = online ? await api('runs/' + encodeURIComponent(id)) : read(keys.runs, []).find(run => run.id === id);
+    if (!run) throw new Error('运行不存在，请从运行记录重新选择');
+    return run;
   }
-
-  function renderRecentRuns() {
-    const runs = getRuns().slice(0, 4);
-    const target = document.getElementById('recentRuns');
-    if (!runs.length) {
-      target.innerHTML = '<div class="empty-state">No runs recorded.</div>';
-      return;
+  function saveLocalRun(run, add = false) {
+    const runs = read(keys.runs, []);
+    if (add) runs.unshift(run); else {
+      const index = runs.findIndex(item => item.id === run.id);
+      if (index < 0) throw new Error('运行不存在');
+      runs[index] = run;
     }
-    target.innerHTML = runs.map(run => `
-      <div class="recent-item">
-        <span class="run-state-icon ${run.status}">${run.status === 'success' ? '✓' : '!'}</span>
-        <span class="recent-copy"><strong>${escapeHtml(run.workflow)}</strong><small>${escapeHtml(run.id)} · ${escapeHtml(run.query)}</small></span>
-        <span class="recent-duration">${Number(run.duration).toFixed(1)}s</span>
-        <span class="recent-time">${formatRelative(run.createdAt)}</span>
-      </div>`).join('');
+    if (runs.length > 100) throw new Error('演示记录已达 100 条，请导出后使用本地后端继续');
+    write(keys.runs, runs);
   }
-
-  function selectFlow(id) {
-    if (!WORKFLOWS[id] || isRunning) return;
-    currentId = id;
-    selectedNode = 0;
-    storageSet(STORAGE_KEYS.selectedFlow, id);
-    renderPicker();
-    renderFlow();
-    renderSelectedFlow();
-    document.getElementById('runResult').hidden = true;
-  }
-
-  async function runWorkflow() {
-    if (isRunning) return;
-    const query = document.getElementById('varQuery').value.trim();
-    if (!query) {
-      showToast('query 不能为空。');
-      document.getElementById('varQuery').focus();
-      return;
-    }
-
-    isRunning = true;
-    const flow = currentFlow();
-    const button = document.getElementById('runButton');
-    const result = document.getElementById('runResult');
-    const status = document.getElementById('resultStatus');
-    result.hidden = false;
-    status.textContent = 'RUNNING';
-    status.className = 'result-status running';
-    document.getElementById('outputBox').textContent = 'Waiting for node output…';
-    document.getElementById('resultMetrics').innerHTML = '<div class="result-metric"><strong>—</strong><small>steps</small></div><div class="result-metric"><strong>—</strong><small>latency</small></div><div class="result-metric"><strong>—</strong><small>tokens</small></div>';
-    button.disabled = true;
-    button.innerHTML = '<span>■</span> Executing…';
-    document.querySelectorAll('.flow-node').forEach(node => node.classList.remove('running', 'success', 'failed'));
-
-    const logs = [];
-    for (let index = 0; index < flow.nodes.length; index += 1) {
-      selectedNode = index;
-      document.querySelectorAll('.flow-node').forEach(node => node.classList.remove('selected', 'running'));
-      const nodeElement = document.querySelectorAll('.flow-node')[index];
-      if (nodeElement) nodeElement.classList.add('selected', 'running');
-      renderInspector(index);
-      logs.push(`[${new Date().toLocaleTimeString('zh-CN', { hour12: false })}] START ${flow.nodes[index].name}`);
-      await new Promise(resolve => setTimeout(resolve, 260 + Math.min(flow.nodes[index].duration * 130, 360)));
-      if (nodeElement) {
-        nodeElement.classList.remove('running');
-        nodeElement.classList.add('success');
-      }
-      logs.push(`[${new Date().toLocaleTimeString('zh-CN', { hour12: false })}] OK    ${flow.nodes[index].name} ${flow.nodes[index].duration.toFixed(1)}s`);
-    }
-
-    const duration = flow.nodes.reduce((sum, node) => sum + node.duration, 0);
-    const tokens = flow.nodes.reduce((sum, node) => sum + node.tokens, 0) + query.length * 2;
-    const run = {
-      id: `run-${Math.random().toString(16).slice(2, 8)}`,
-      workflowId: flow.id,
-      workflow: flow.name,
-      status: 'success',
-      duration,
-      tokens,
-      createdAt: Date.now(),
-      query,
-      output: flow.output,
-      steps: flow.nodes.map(node => ({ name: node.name, type: node.type, duration: node.duration, status: 'success' }))
-    };
-    const runs = getRuns();
-    runs.unshift(run);
-    storageSet(STORAGE_KEYS.runs, runs.slice(0, 50));
-
-    status.textContent = 'SUCCESS';
-    status.className = 'result-status';
-    document.getElementById('resultMetrics').innerHTML = `
-      <div class="result-metric"><strong>${flow.nodes.length}</strong><small>steps</small></div>
-      <div class="result-metric"><strong>${duration.toFixed(1)}s</strong><small>latency</small></div>
-      <div class="result-metric"><strong>${formatTokens(tokens)}</strong><small>tokens</small></div>`;
-    document.getElementById('outputBox').textContent = flow.output;
-    document.getElementById('logBox').textContent = [`RUN ${run.id}`, `FLOW ${flow.name}`, `QUERY ${query}`, '', ...logs, '', `DONE ${duration.toFixed(1)}s · ${tokens} tokens`].join('\n');
-    button.disabled = false;
-    button.innerHTML = '<span>▶</span> Execute flow';
-    isRunning = false;
-    renderRecentRuns();
-    renderMetrics();
-    showToast(`${flow.name} 执行完成，运行记录已保存。`);
-  }
-
-  picker.addEventListener('click', event => {
-    const button = event.target.closest('[data-flow]');
-    if (button) selectFlow(button.dataset.flow);
-  });
-  document.getElementById('flowStage').addEventListener('click', event => {
-    const node = event.target.closest('[data-node]');
-    if (!node || isRunning) return;
-    selectedNode = Number(node.dataset.node);
-    document.querySelectorAll('.flow-node').forEach(item => item.classList.remove('selected'));
-    node.classList.add('selected');
-    renderInspector(selectedNode);
-  });
-  document.getElementById('runButton').addEventListener('click', runWorkflow);
-  document.getElementById('focusRun').addEventListener('click', () => {
-    document.getElementById('runPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    document.getElementById('varQuery').focus({ preventScroll: true });
-  });
-  document.getElementById('resetWorkspace').addEventListener('click', () => {
-    document.getElementById('varQuery').value = '什么是工作流编排？请解释其核心原理。';
-    document.getElementById('varTask').value = '完成一个复杂的多步骤数据分析任务';
-    document.getElementById('varContext').value = '工作流编排是一种协调多个任务或服务执行的模式。';
-    document.getElementById('runResult').hidden = true;
-    selectFlow('rag_qa');
-    showToast('Workspace 已恢复默认状态。');
-  });
-  document.getElementById('clearInputs').addEventListener('click', () => {
-    ['varQuery', 'varTask', 'varContext'].forEach(id => { document.getElementById(id).value = ''; });
-  });
-  document.getElementById('inspectFlow').addEventListener('click', () => {
-    document.getElementById('inspectorContent').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-  document.getElementById('logToggle').addEventListener('click', event => {
-    const log = document.getElementById('logBox');
-    log.hidden = !log.hidden;
-    event.currentTarget.querySelector('b').textContent = log.hidden ? '+' : '−';
-  });
-
-  const replay = storageGet(STORAGE_KEYS.replay, null);
-  if (replay && WORKFLOWS[replay.workflowId]) {
-    currentId = replay.workflowId;
-    document.getElementById('varQuery').value = replay.query || '';
-    try { localStorage.removeItem(STORAGE_KEYS.replay); } catch {}
-  }
-  renderPicker();
-  renderFlow();
-  renderSelectedFlow();
-  renderRecentRuns();
-  renderMetrics();
-}
-
-function initRunsPage() {
-  const tableBody = document.getElementById('runTableBody');
-  if (!tableBody) return;
-  let runs = getRuns();
-  let selectedId = runs[0] ? runs[0].id : null;
-
-  function filteredRuns() {
-    const search = document.getElementById('runSearch').value.trim().toLowerCase();
-    const status = document.getElementById('statusFilter').value;
-    return runs.filter(run => {
-      const matchesSearch = !search || `${run.id} ${run.workflow} ${run.query}`.toLowerCase().includes(search);
-      const matchesStatus = status === 'all' || run.status === status;
-      return matchesSearch && matchesStatus;
-    });
-  }
-
-  function renderSummary() {
-    const successful = runs.filter(run => run.status === 'success');
-    const avg = successful.length ? successful.reduce((sum, run) => sum + Number(run.duration), 0) / successful.length : 0;
-    const tokenTotal = runs.reduce((sum, run) => sum + Number(run.tokens || 0), 0);
-    document.getElementById('totalRunsMetric').textContent = runs.length;
-    document.getElementById('runSuccessMetric').textContent = runs.length ? `${Math.round(successful.length / runs.length * 100)}%` : '—';
-    document.getElementById('runLatencyMetric').textContent = avg ? `${avg.toFixed(1)}s` : '—';
-    document.getElementById('runTokensMetric').textContent = formatTokens(tokenTotal);
-  }
-
-  function renderTable() {
-    const data = filteredRuns();
-    if (!data.length) {
-      tableBody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No matching runs.</div></td></tr>';
-      document.getElementById('runDetailBody').innerHTML = '<div class="empty-state">Select a run to inspect.</div>';
-      return;
-    }
-    if (!data.some(run => run.id === selectedId)) selectedId = data[0].id;
-    tableBody.innerHTML = data.map(run => `
-      <tr data-run="${escapeHtml(run.id)}" class="${run.id === selectedId ? 'selected' : ''}">
-        <td class="run-id">${escapeHtml(run.id)}</td>
-        <td><strong>${escapeHtml(run.workflow)}</strong></td>
-        <td><span class="status-pill ${run.status}">${escapeHtml(run.status.toUpperCase())}</span></td>
-        <td>${Number(run.duration).toFixed(1)}s</td>
-        <td>${formatTokens(run.tokens)}</td>
-        <td>${formatRelative(run.createdAt)}</td>
-        <td>→</td>
-      </tr>`).join('');
-    renderDetail(selectedId);
-  }
-
-  function renderDetail(id) {
-    const run = runs.find(item => item.id === id);
-    if (!run) return;
-    const flow = WORKFLOWS[run.workflowId] || WORKFLOWS.rag_qa;
-    document.getElementById('detailRunId').textContent = run.id;
-    document.getElementById('runDetailBody').innerHTML = `
-      <div class="selected-flow"><span class="flow-monogram">${escapeHtml(flow.short)}</span><span><strong>${escapeHtml(run.workflow)}</strong><small>${formatRelative(run.createdAt)} · ${formatTokens(run.tokens)} tokens</small></span><span class="status-pill ${run.status}">${run.status.toUpperCase()}</span></div>
-      <p class="detail-query">${escapeHtml(run.query)}</p>
-      <div class="step-list">${run.steps.map((step, index) => `
-        <div class="step-row"><b class="${step.status}">${step.status === 'success' ? '✓' : step.status === 'failed' ? '!' : '–'}</b><span><strong>${String(index + 1).padStart(2, '0')} · ${escapeHtml(step.name)}</strong><small>${escapeHtml(step.type)} node</small></span><small>${Number(step.duration).toFixed(1)}s</small></div>`).join('')}</div>
-      <div class="output-box">${escapeHtml(run.output)}</div>
-      <div class="heading-actions" style="margin-top:14px;"><button class="button button-quiet" type="button" id="copyRunOutput"><span>□</span> Copy output</button><button class="button button-primary" type="button" id="replayRun"><span>▶</span> Replay</button></div>`;
-    document.getElementById('copyRunOutput').addEventListener('click', () => copyText(run.output, '输出已复制。'));
-    document.getElementById('replayRun').addEventListener('click', () => {
-      storageSet(STORAGE_KEYS.replay, { workflowId: run.workflowId, query: run.query });
-      window.location.href = 'index.html';
-    });
-  }
-
-  tableBody.addEventListener('click', event => {
-    const row = event.target.closest('[data-run]');
-    if (!row) return;
-    selectedId = row.dataset.run;
-    renderTable();
-  });
-  document.getElementById('runSearch').addEventListener('input', renderTable);
-  document.getElementById('statusFilter').addEventListener('change', renderTable);
-  document.getElementById('clearRunFilters').addEventListener('click', () => {
-    document.getElementById('runSearch').value = '';
-    document.getElementById('statusFilter').value = 'all';
-    renderTable();
-  });
-  document.getElementById('exportRuns').addEventListener('click', () => downloadJson('agentflow-runs.json', runs));
-  renderSummary();
-  renderTable();
-}
-
-function initPromptPage() {
-  const templateInput = document.getElementById('promptTemplate');
-  if (!templateInput) return;
-  let activeId = PROMPT_SAMPLES[0].id;
-
-  function activeSample() {
-    return PROMPT_SAMPLES.find(sample => sample.id === activeId) || PROMPT_SAMPLES[0];
-  }
-
-  function loadSample(id) {
-    activeId = id;
-    const sample = activeSample();
-    templateInput.value = sample.template;
-    document.getElementById('promptVariables').value = JSON.stringify(sample.variables, null, 2);
-    renderSamples();
-    previewPrompt();
-  }
-
-  function renderSamples() {
-    document.getElementById('promptSamples').innerHTML = PROMPT_SAMPLES.map(sample => `<button class="sample-button ${sample.id === activeId ? 'active' : ''}" type="button" data-sample="${sample.id}">${escapeHtml(sample.name)}</button>`).join('');
-  }
-
-  function previewPrompt() {
-    const template = templateInput.value;
-    let variables;
+  async function submit(data, parent = null) {
+    if (online) return parent ? api('runs/' + parent + '/retry', 'POST', {}) : api('runs', 'POST', data);
+    const run = { id: 'demo-' + (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)), title: data.title, source: data.source, settings: { ...data.settings, mode: 'browser-rules' }, parent_id: parent, created_at: new Date().toISOString(), version: 1, status: 'running', draft: null, original_draft: null, review_note: '', error: null, report: null, usage: null, steps: E.stages.map(id => ({ id, status: 'pending', duration_ms: null })), events: [] };
+    let current = 0;
     try {
-      variables = JSON.parse(document.getElementById('promptVariables').value || '{}');
-    } catch {
-      showToast('变量 JSON 格式有误。');
-      return false;
+      for (current = 0; current < 3; current++) {
+        const start = performance.now();
+        if (current === 1) run.draft = E.extract(run.source, data.settings.max_items);
+        if (current === 2) E.validate(run.draft, run.source, data.settings.max_items);
+        run.steps[current] = { id: E.stages[current], status: 'succeeded', duration_ms: performance.now() - start };
+        run.events.push({ at: new Date().toISOString(), type: 'succeeded', message: stageNames[current] });
+      }
+      run.original_draft = structuredClone(run.draft);
+      run.status = 'awaiting_review'; run.steps[3].status = 'awaiting_review';
+    } catch (error) { run.status = 'failed'; run.error = error.message; run.steps[current].status = 'failed'; }
+    saveLocalRun(run, true);
+    return run;
+  }
+  function workspace() {
+    const draft = read(keys.input, sample);
+    $('main').innerHTML = heading('DOCUMENT PIPELINE', '资料处理工作台', '<a class="button" href="runs.html">' + icon('history') + '运行记录</a>') + stats() +
+      '<section class="flow-section"><div class="section-head"><h2>证据整理与审核</h2><span class="subtle">5 个步骤 · 人工审核后导出</span></div>' + flow() + '</section>' +
+      '<section class="workspace-grid"><form id="runForm" class="input-workbench"><div class="section-head"><h2>新建任务</h2><button type="button" id="loadSample" class="text-button">' + icon('rotate-ccw') + '示例资料</button></div><label>任务标题<input id="title" name="title" required maxlength="120" value="' + esc(draft.title) + '"></label><div class="source-heading"><label for="source">原始资料</label><label class="upload button">' + icon('upload') + '导入文本<input id="upload" type="file" accept=".txt,.md,text/plain,text/markdown" aria-label="导入文本"></label></div><textarea id="source" name="source" required maxlength="30000" rows="12" spellcheck="false">' + esc(draft.source) + '</textarea><div class="source-meta"><span id="charCount"></span><span>TXT / Markdown</span></div><div class="form-footer"><span class="mode-label">' + icon('cpu') + esc(online ? config.mode === 'ollama' ? 'Ollama · ' + (config.model || '未配置模型') : '本地规则处理' : '浏览器规则演示') + '</span><button class="button primary" id="execute" type="submit">' + icon('play') + '开始处理</button></div></form><aside class="contract-panel"><p class="eyebrow">OUTPUT CONTRACT</p><h2>让每条结果有据可查</h2><div class="contract-row">' + icon('quote') + '<div><strong>资料要点</strong><p>保留原文与对应行号</p></div></div><div class="contract-row">' + icon('git-branch') + '<div><strong>决定与待办</strong><p>分类整理，逐条复核</p></div></div><div class="contract-row">' + icon('shield-check') + '<div><strong>人工审核</strong><p>确认引用、调整分类、移除条目</p></div></div><div class="contract-row">' + icon('file-down') + '<div><strong>可追踪报告</strong><p>Markdown 正文与运行轨迹</p></div></div><div class="contract-bottom"><span>每次最多</span><strong>' + config.max_items + ' 条</strong><a href="settings.html" title="调整设置" aria-label="调整设置">' + icon('sliders-horizontal') + '</a></div></aside></section><section class="recent-section"><div class="section-head"><h2>最近运行</h2><span class="subtle">最近 5 条</span></div>' + runRows(allRuns.slice(0, 5)) + '</section>';
+    const persist = () => { $('charCount').textContent = $('source').value.length + ' / 30000 字符'; write(keys.input, { title: $('title').value, source: $('source').value }); };
+    $('charCount').textContent = $('source').value.length + ' / 30000 字符';
+    bind('title', 'input', persist); bind('source', 'input', persist);
+    bind('loadSample', 'click', () => { $('title').value = sample.title; $('source').value = sample.source; persist(); });
+    bind('upload', 'change', async event => {
+      const file = event.target.files[0]; if (!file) return;
+      if (!/\.(txt|md)$/i.test(file.name) || file.size > 120000) throw new Error('请选择 120 KB 以内的 TXT 或 Markdown 文件');
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer()).replace(/\r\n?/g, '\n');
+      if (!text.trim() || text.length > 30000 || text.includes('\0')) throw new Error('资料需为 UTF-8 文本，正文 1–30000 字符');
+      $('source').value = text; $('title').value = file.name.replace(/\.[^.]+$/, '').slice(0, 120); persist();
+    });
+    bind('runForm', 'submit', async event => {
+      event.preventDefault(); if (pending) return;
+      const title = $('title').value.trim(), source = $('source').value.replace(/\r\n?/g, '\n');
+      if (!title || !source.trim() || source.includes('\0')) throw new Error('请填写标题和有效正文');
+      pending = true; $('execute').disabled = true;
+      try { const run = await submit({ title, source, settings: config }); location.href = 'review.html?id=' + encodeURIComponent(run.id); }
+      finally { pending = false; $('execute').disabled = false; }
+    });
+    icons();
+  }
+  function runsPage() {
+    $('main').innerHTML = heading('RUN HISTORY', '运行记录', '<a href="index.html" class="button primary">' + icon('plus') + '新建任务</a>') + stats() + '<section><div class="filter-bar"><label class="search">' + icon('search') + '<input id="search" type="search" placeholder="搜索标题或运行 ID" aria-label="搜索运行"></label><select id="statusFilter" aria-label="筛选状态"><option value="">全部状态</option>' + Object.entries(labels).filter(([key]) => key !== 'pending').map(([key, label]) => '<option value="' + key + '">' + label + '</option>').join('') + '</select><button id="refresh" class="icon-button" title="刷新" aria-label="刷新">' + icon('refresh-cw') + '</button></div><div id="runList"></div><p class="subtle list-note">最近 100 条记录 · 耗时仅统计已测量的处理步骤</p></section>';
+    const render = () => { const query = $('search').value.toLowerCase(); $('runList').innerHTML = runRows(allRuns.filter(run => (run.title + run.id).toLowerCase().includes(query) && (!$('statusFilter').value || run.status === $('statusFilter').value))); icons(); };
+    bind('search', 'input', render); bind('statusFilter', 'change', render); bind('refresh', 'click', async () => { await loadRuns(); document.querySelector('.metrics').outerHTML = stats(); render(); }); render();
+  }
+  function download(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = name; anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function reviewPage() {
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) { $('main').innerHTML = heading('HUMAN REVIEW', '审核与报告') + runRows(allRuns.filter(run => run.status === 'awaiting_review')); icons(); return; }
+    const run = await getRun(id);
+    const editable = run.status === 'awaiting_review';
+    const actions = (['queued', 'running', 'awaiting_review'].includes(run.status) ? '<button class="button" id="cancel">' + icon('square') + '取消运行</button>' : '') + (['failed', 'cancelled', 'rejected'].includes(run.status) ? '<button class="button primary" id="retry">' + icon('rotate-cw') + '重新运行</button>' : '') + (run.status === 'succeeded' ? '<button class="button primary" id="reportDownload">' + icon('download') + '下载报告</button>' : '') + '<button class="icon-button" id="traceDownload" title="导出完整运行 JSON" aria-label="导出完整运行 JSON">' + icon('braces') + '</button>';
+    $('main').innerHTML = heading('RUN / ' + esc(run.id), esc(run.title), actions) + '<div class="run-meta">' + badge(run.status) + '<span>' + esc(modeName(run)) + '</span><span class="mono">' + duration(run) + '</span><time>' + date(run.created_at) + '</time>' + (run.parent_id ? '<a href="review.html?id=' + esc(run.parent_id) + '">原始运行 ' + esc(run.parent_id) + '</a>' : '') + '</div><section class="flow-section">' + flow(run.steps) + '</section>' +
+      (run.error ? '<div class="error-message" role="alert">' + icon('circle-alert') + '<span>' + esc(run.error) + '</span></div>' : '') +
+      '<section class="review-grid"><div><div class="section-head"><h2>原始资料</h2><span class="subtle">' + run.source.length + ' 字符</span></div><div class="source-lines">' + run.source.split('\n').map((line, index) => '<div id="line-' + (index + 1) + '"><a href="#line-' + (index + 1) + '">L' + (index + 1) + '</a><span>' + esc(line) + '</span></div>').join('') + '</div>' + (run.source_hash ? '<p class="hash">SHA-256 · ' + esc(run.source_hash) + '</p>' : '') + '</div><div class="review-workbench"><div class="section-head"><h2>提取结果</h2><span class="subtle">' + (run.draft?.items.length || 0) + ' 条引用</span></div><form id="reviewForm">' +
+      (run.draft ? '<div id="items">' + run.draft.items.map((item, index) => '<article class="evidence-item" data-index="' + index + '"><div class="evidence-heading"><select aria-label="第 ' + (index + 1) + ' 条分类" data-kind ' + (!editable ? 'disabled' : '') + '>' + [['finding', '资料要点'], ['decision', '决定'], ['action', '待办']].map(([value, label]) => '<option value="' + value + '"' + (value === item.kind ? ' selected' : '') + '>' + label + '</option>').join('') + '</select><a href="#line-' + item.line + '" class="citation">' + icon('link') + 'L' + item.line + '</a>' + (editable ? '<button class="icon-button" type="button" data-remove="' + index + '" aria-label="移除第 ' + (index + 1) + ' 条" title="移除条目">' + icon('trash-2') + '</button>' : '') + '</div><textarea data-text rows="2" maxlength="2000" aria-label="第 ' + (index + 1) + ' 条引用" ' + (!editable ? 'readonly' : '') + '>' + esc(item.text) + '</textarea></article>').join('') + '</div>' : empty('尚无提取结果', ['queued', 'running'].includes(run.status) ? '处理进度会自动更新。' : '检查错误后可重新运行。')) +
+      (editable ? '<label class="review-note">审核备注<textarea id="reviewNote" maxlength="2000" rows="2" placeholder="记录调整或退回原因"></textarea></label><label class="check-row"><input id="reviewConfirmed" type="checkbox">我已核对引用与分类</label><div class="actions review-actions"><button id="reject" class="button" type="button">' + icon('corner-up-left') + '退回</button><button id="approve" class="button primary" type="submit" disabled>' + icon('check') + '通过并生成报告</button></div>' : (run.review_note ? '<p class="review-note">' + esc(run.review_note) + '</p>' : '')) + '</form></div></section>' +
+      (run.report ? '<section class="report-section"><div class="section-head"><h2>最终报告</h2>' + badge('succeeded') + '</div><pre class="report-preview">' + esc(run.report) + '</pre></section>' : '') +
+      '<section class="events-section"><div class="section-head"><h2>执行事件</h2><span class="subtle">' + (run.usage ? '输入 ' + esc(run.usage.input_tokens ?? '未返回') + ' / 输出 ' + esc(run.usage.output_tokens ?? '未返回') + ' tokens' : '未调用模型时不统计 Token') + '</span></div><ol class="events">' + run.events.map(event => '<li><time>' + date(event.at) + '</time><span class="mono">' + esc(event.type) + '</span><span>' + esc(event.message) + '</span></li>').join('') + '</ol></section>';
+    bind('traceDownload', 'click', () => download(run.id + '.json', JSON.stringify(run, null, 2), 'application/json'));
+    bind('reportDownload', 'click', () => download(run.id + '.md', run.report, 'text/markdown'));
+    bind('cancel', 'click', async () => {
+      clearTimeout(pollTimer);
+      if (online) await api('runs/' + id + '/cancel', 'POST', {});
+      else {
+        const current = await getRun(id);
+        if (current.status !== 'awaiting_review' || current.version !== run.version) throw new Error('运行已发生变化，请刷新');
+        run.status = 'cancelled'; run.steps[3].status = 'cancelled'; run.version++;
+        run.events.push({ at: new Date().toISOString(), type: 'cancelled', message: '用户取消了运行' }); saveLocalRun(run);
+      }
+      await reviewPage();
+    });
+    bind('retry', 'click', async () => {
+      if (pending) return; pending = true; $('retry').disabled = true;
+      try { const next = await submit({ title: run.title, source: run.source, settings: { ...run.settings, mode: run.settings.mode === 'browser-rules' ? 'rules' : run.settings.mode } }, id); location.href = 'review.html?id=' + next.id; }
+      finally { pending = false; if ($('retry')) $('retry').disabled = false; }
+    });
+    bind('items', 'click', event => { const button = event.target.closest('[data-remove]'); if (button) button.closest('.evidence-item').remove(); });
+    bind('reviewConfirmed', 'change', () => { $('approve').disabled = !$('reviewConfirmed').checked; });
+    async function decide(decision) {
+      if (pending) return;
+      const items = Array.from(document.querySelectorAll('.evidence-item')).map(el => ({ kind: el.querySelector('[data-kind]').value, text: el.querySelector('[data-text]').value, line: run.draft.items[Number(el.dataset.index)].line }));
+      E.validate({ items }, run.source, run.settings.max_items);
+      if (decision === 'approve' && !$('reviewConfirmed').checked) throw new Error('请先确认已核对引用与分类');
+      const body = { decision, version: run.version, draft: { items }, note: $('reviewNote').value };
+      pending = true; $('approve').disabled = true; $('reject').disabled = true;
+      try {
+        if (online) await api('runs/' + id + '/review', 'POST', body);
+        else {
+          const current = await getRun(id);
+          if (current.version !== run.version || current.status !== 'awaiting_review') throw new Error('审核状态已改变，请刷新后重试');
+          run.draft = body.draft; run.review_note = body.note; run.version++;
+          run.status = decision === 'approve' ? 'succeeded' : 'rejected';
+          run.steps[3].status = run.status;
+          if (decision === 'approve') { const start = performance.now(); run.report = E.report(run); run.steps[4] = { id: 'export', status: 'succeeded', duration_ms: performance.now() - start }; }
+          run.events.push({ at: new Date().toISOString(), type: decision, message: '人工审核' }); saveLocalRun(run);
+        }
+        await reviewPage();
+      } finally { pending = false; if ($('approve')) $('approve').disabled = !$('reviewConfirmed').checked; if ($('reject')) $('reject').disabled = false; }
     }
-    const variableNames = [];
-    template.replace(/\{\{(\w+)(?:\|[^}]*)?\}\}/g, (_, key) => {
-      if (!variableNames.includes(key)) variableNames.push(key);
-      return _;
-    });
-    let rendered = template.replace(/\{\{(\w+)(?:\|([^}]*))?\}\}/g, (_, key, fallback) => {
-      if (Object.prototype.hasOwnProperty.call(variables, key)) return String(variables[key]);
-      return fallback !== undefined ? fallback : `{{${key}}}`;
-    });
-    document.getElementById('promptPreview').textContent = rendered;
-    document.getElementById('variableList').innerHTML = variableNames.length ? variableNames.map(name => `<span class="variable-chip">{{${escapeHtml(name)}}}</span>`).join('') : '<span class="variable-chip">no variables</span>';
-    document.getElementById('charMetric').textContent = template.length;
-    document.getElementById('varMetric').textContent = variableNames.length;
-    document.getElementById('tokenMetric').textContent = Math.ceil(rendered.length / 2.2);
-    return true;
+    bind('reviewForm', 'submit', event => { event.preventDefault(); return decide('approve'); });
+    bind('reject', 'click', () => decide('reject'));
+    icons(); clearTimeout(pollTimer);
+    if (['queued', 'running'].includes(run.status)) pollTimer = setTimeout(() => reviewPage().catch(error => {
+      toast('连接中断：' + error.message);
+      const retry = document.createElement('button'); retry.className = 'button'; retry.textContent = '重新连接'; retry.onclick = () => reviewPage().catch(error => toast(error.message)); $('main').prepend(retry);
+    }), 600);
   }
-
-  function runEvaluation() {
-    if (!previewPrompt()) return;
-    const button = document.getElementById('evaluatePrompt');
-    button.disabled = true;
-    button.innerHTML = '<span>■</span> Evaluating…';
-    setTimeout(() => {
-      const scores = [
-        ['Instruction clarity', 94],
-        ['Variable coverage', activeId === 'planner' ? 89 : 96],
-        ['Output constraints', activeId === 'reviewer' ? 91 : 86],
-        ['Safety boundary', 88]
-      ];
-      document.getElementById('scoreList').innerHTML = scores.map(score => `<div class="score-row"><span>${score[0]}</span><div class="score-bar"><i style="width:${score[1]}%"></i></div><strong>${score[1]}</strong></div>`).join('');
-      const average = Math.round(scores.reduce((sum, score) => sum + score[1], 0) / scores.length);
-      document.getElementById('promptScore').textContent = average;
-      button.disabled = false;
-      button.innerHTML = '<span>▶</span> Run evaluation';
-      showToast(`Prompt evaluation completed · ${average}/100`);
-    }, 700);
+  async function saveConfig(next) {
+    if (online) config = await api('settings', 'PUT', next);
+    else { config = { ...next, mode: 'rules' }; write(keys.settings, config); }
+    toast('配置已保存，应用于下一次运行');
   }
-
-  document.getElementById('promptSamples').addEventListener('click', event => {
-    const button = event.target.closest('[data-sample]');
-    if (button) loadSample(button.dataset.sample);
-  });
-  document.getElementById('renderPrompt').addEventListener('click', previewPrompt);
-  document.getElementById('evaluatePrompt').addEventListener('click', runEvaluation);
-  document.getElementById('copyPrompt').addEventListener('click', () => copyText(document.getElementById('promptPreview').textContent, '渲染结果已复制。'));
-  document.getElementById('resetPrompt').addEventListener('click', () => loadSample(activeId));
-  renderSamples();
-  loadSample(activeId);
-}
-
-function initSettingsPage() {
-  const form = document.getElementById('settingsForm');
-  if (!form) return;
-  let settings = getSettings();
-
-  function populate() {
-    document.getElementById('modelSetting').value = settings.model;
-    document.getElementById('temperatureSetting').value = settings.temperature;
-    document.getElementById('temperatureValue').textContent = Number(settings.temperature).toFixed(1);
-    document.getElementById('maxTokensSetting').value = settings.maxTokens;
-    document.getElementById('retrySetting').value = settings.retryLimit;
-    document.getElementById('traceSetting').checked = settings.traces;
-    document.getElementById('cacheSetting').checked = settings.cache;
-    document.getElementById('failFastSetting').checked = settings.failFast;
-    document.getElementById('themeSetting').value = settings.theme;
-    renderDataStats();
+  function promptsPage() {
+    $('main').innerHTML = heading('EXTRACTION CONTRACT', '提取指令') + '<section class="prompt-layout"><form id="promptForm"><div class="section-head"><h2>模型提取指令</h2><span class="subtle">仅用于 Ollama 模式</span></div><label>系统指令<textarea id="prompt" required maxlength="4000" rows="12">' + esc(config.prompt) + '</textarea></label><div class="actions"><button id="defaultPrompt" type="button" class="button">' + icon('rotate-ccw') + '恢复默认</button><button class="button primary" type="submit">' + icon('save') + '保存指令</button></div></form><aside><p class="eyebrow">EVIDENCE SCHEMA</p><h2>输出约定</h2><pre class="schema-preview">{\n  "items": [\n    {\n      "kind": "action",\n      "text": "待办：补充回归测试。",\n      "line": 3\n    }\n  ]\n}</pre><dl class="definitions"><dt>kind</dt><dd>finding / decision / action</dd><dt>text</dt><dd>对应行中的连续原文片段</dd><dt>line</dt><dd>从 1 开始的原文行号</dd></dl></aside></section>';
+    bind('defaultPrompt', 'click', () => { $('prompt').value = E.defaults.prompt; });
+    bind('promptForm', 'submit', event => { event.preventDefault(); if (!$('prompt').value.trim()) throw new Error('提取指令不能为空'); return saveConfig({ ...config, prompt: $('prompt').value }); }); icons();
   }
-
-  function renderDataStats() {
-    const runs = getRuns();
-    const size = JSON.stringify(runs).length + JSON.stringify(settings).length;
-    document.getElementById('storedRuns').textContent = runs.length;
-    document.getElementById('storedDataSize').textContent = `${(size / 1024).toFixed(1)} KB`;
-    document.getElementById('lastRunTime').textContent = runs[0] ? formatRelative(runs[0].createdAt) : 'Never';
+  function settingsPage() {
+    $('main').innerHTML = heading('RUNTIME CONFIGURATION', '运行设置') + '<section class="settings-layout"><form id="settingsForm"><div class="section-head"><h2>执行方式</h2><span class="subtle">' + (online ? '配置保存在本地服务' : '配置保存在当前浏览器') + '</span></div><div class="mode-options"><label><input type="radio" name="mode" value="rules"' + (config.mode === 'rules' ? ' checked' : '') + '><span><strong>规则处理</strong><small>按原文规则提取，无需模型</small></span></label><label><input type="radio" name="mode" value="ollama"' + (config.mode === 'ollama' ? ' checked' : '') + (!online ? ' disabled' : '') + '><span><strong>Ollama 模型</strong><small>使用本地已安装的语言模型</small></span></label></div><label>模型名称<input id="model" maxlength="120" value="' + esc(config.model) + '" placeholder="填写本地已安装模型的名称"></label><div class="settings-fields"><label>提取上限<input id="maxItems" type="number" min="1" max="30" required value="' + config.max_items + '"></label><label>超时 / 秒<input id="timeout" type="number" min="1" max="180" required value="' + config.timeout_seconds + '"></label><label>连接重试次数<input id="retryLimit" type="number" min="0" max="2" required value="' + config.retry_limit + '"></label></div><div class="actions"><button class="button primary" type="submit">' + icon('save') + '保存设置</button></div></form><aside class="environment"><p class="eyebrow">ENVIRONMENT</p><h2>工作区状态</h2><dl class="definitions"><dt>运行环境</dt><dd>' + (online ? '本地后端' : '浏览器规则演示') + '</dd><dt>记录保存</dt><dd>' + (online ? 'SQLite' : 'LocalStorage') + '</dd><dt>模型调用</dt><dd>' + (online ? 'Ollama 可选' : '需启动本地服务') + '</dd><dt>报告生成</dt><dd>人工审核通过后</dd></dl><a class="button" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual/tree/main/AgentFlow-Visualizer#本地运行" target="_blank" rel="noreferrer">' + icon('book-open') + '启动文档</a></aside></section>';
+    const modeFields = () => { const enabled = document.querySelector('[name=mode]:checked').value === 'ollama'; for (const id of ['model', 'timeout', 'retryLimit']) $(id).disabled = !enabled; };
+    document.querySelectorAll('[name=mode]').forEach(el => el.addEventListener('change', modeFields)); modeFields();
+    bind('settingsForm', 'submit', event => {
+      event.preventDefault();
+      const next = { ...config, mode: document.querySelector('[name=mode]:checked').value, model: $('model').value.trim(), max_items: Number($('maxItems').value), timeout_seconds: Number($('timeout').value), retry_limit: Number($('retryLimit').value) };
+      if (next.mode === 'ollama' && !next.model) throw new Error('请填写 Ollama 模型名称');
+      return saveConfig(next);
+    }); icons();
   }
-
-  document.getElementById('temperatureSetting').addEventListener('input', event => {
-    document.getElementById('temperatureValue').textContent = Number(event.target.value).toFixed(1);
-  });
-  function saveSettings() {
-    settings = {
-      model: document.getElementById('modelSetting').value,
-      temperature: Number(document.getElementById('temperatureSetting').value),
-      maxTokens: Number(document.getElementById('maxTokensSetting').value),
-      retryLimit: Number(document.getElementById('retrySetting').value),
-      traces: document.getElementById('traceSetting').checked,
-      cache: document.getElementById('cacheSetting').checked,
-      failFast: document.getElementById('failFastSetting').checked,
-      theme: document.getElementById('themeSetting').value
-    };
-    storageSet(STORAGE_KEYS.settings, settings);
-    setTheme(settings.theme);
-    showToast('Runtime settings saved.');
+  async function start() {
+    if (location.protocol !== 'file:') {
+      try {
+        const res = await fetch('/api/health', { signal: AbortSignal.timeout(2000) });
+        if (res.ok && res.headers.get('content-type')?.includes('application/json')) online = (await res.json()).service === 'agentflow';
+      } catch { /* Static hosting and file previews have no backend. */ }
+    }
+    config = online ? await api('settings') : { ...E.defaults, ...read(keys.settings, {}), mode: 'rules' };
+    await loadRuns(); renderShell();
+    if (page === 'workspace') workspace();
+    if (page === 'runs') runsPage();
+    if (page === 'review') await reviewPage();
+    if (page === 'prompts') promptsPage();
+    if (page === 'settings') settingsPage();
   }
-
-  form.addEventListener('submit', event => {
-    event.preventDefault();
-    saveSettings();
-  });
-  document.getElementById('saveSettings').addEventListener('click', saveSettings);
-  document.getElementById('resetSettings').addEventListener('click', () => {
-    settings = Object.assign({}, DEFAULT_SETTINGS);
-    populate();
-    showToast('Settings restored to defaults.');
-  });
-  document.getElementById('resetDemoData').addEventListener('click', () => {
-    storageSet(STORAGE_KEYS.runs, seedRuns());
-    renderDataStats();
-    const count = document.getElementById('runCount');
-    if (count) count.textContent = getRuns().length;
-    showToast('Demo run history restored.');
-  });
-  document.getElementById('exportSettings').addEventListener('click', () => downloadJson('agentflow-settings.json', settings));
-  populate();
-}
-
-function copyText(value, successMessage) {
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(value).then(() => showToast(successMessage)).catch(() => fallbackCopy(value, successMessage));
-  } else {
-    fallbackCopy(value, successMessage);
-  }
-}
-
-function fallbackCopy(value, successMessage) {
-  const textarea = document.createElement('textarea');
-  textarea.value = value;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  textarea.remove();
-  showToast(successMessage);
-}
-
-function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(link.href);
-  showToast(`${filename} 已导出。`);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initCommon();
-  initWorkspace();
-  initRunsPage();
-  initPromptPage();
-  initSettingsPage();
-});
+  start().catch(error => { if (!$('main')) renderShell(); $('main').innerHTML = empty('工作区暂时无法打开', error.message) + '<a class="button" href="index.html">返回工作台</a>'; icons(); });
+  window.addEventListener('pagehide', () => clearTimeout(pollTimer));
+})();
