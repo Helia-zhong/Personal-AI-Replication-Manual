@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 if __package__ is None:
     sys.path.append(str(Path(__file__).resolve().parent))
@@ -30,13 +30,13 @@ def templates() -> list[dict]:
 
 
 @app.get("/api/evaluate/{template_id}")
-def evaluate(template_id: str) -> dict:
-    return evaluate_template(template_id)
+def evaluate(template_id: str, provider: str = Query("mock"), model: str = Query(""), timeout: int = Query(120, ge=1, le=300)) -> dict:
+    return evaluate_template(template_id, provider=provider, model=model, timeout=timeout)
 
 
 @app.get("/api/compare")
-def compare() -> dict:
-    return compare_templates()
+def compare(provider: str = Query("mock"), model: str = Query(""), timeout: int = Query(120, ge=1, le=300)) -> dict:
+    return compare_templates(provider=provider, model=model, timeout=timeout)
 
 
 if __name__ == "__main__":

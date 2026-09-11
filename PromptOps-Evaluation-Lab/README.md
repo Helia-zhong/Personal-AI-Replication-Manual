@@ -8,6 +8,8 @@ PromptOps Evaluation Lab 是一个多页面 Prompt 评估与回归控制台，�
 
 <https://helia-zhong.github.io/Personal-AI-Replication-Manual/PromptOps-Evaluation-Lab/web/index.html>
 
+[验证记录](docs/validation.md)
+
 ## 页面结构
 
 | 页面 | 入口 | 主要内容 |
@@ -48,6 +50,8 @@ http://127.0.0.1:8000/web/index.html
 ```bash
 python scripts/run_eval.py --template guarded
 python scripts/run_eval.py --compare
+# 真实本地模型：失败会按用例保留，不会静默使用模拟响应
+python scripts/run_eval.py --provider ollama --model qwen2.5:1.5b --compare --output reports/ollama-qwen25.json
 ```
 
 ### FastAPI 接口
@@ -66,6 +70,8 @@ GET http://127.0.0.1:8020/api/cases
 GET http://127.0.0.1:8020/api/templates
 GET http://127.0.0.1:8020/api/evaluate/guarded
 GET http://127.0.0.1:8020/api/compare
+# 真实模型请求示例
+GET http://127.0.0.1:8020/api/compare?provider=ollama&model=qwen2.5:1.5b
 ```
 
 ## 评分规则
@@ -94,7 +100,7 @@ PromptOps-Evaluation-Lab/
 ├── README.md
 ├── backend/
 │   ├── app.py                 FastAPI 服务
-│   ├── promptops.py           模拟响应与评分引擎
+│   ├── promptops.py           模拟响应、Ollama 适配与评分引擎
 │   └── requirements.txt
 ├── data/
 │   ├── eval_cases.json        固定回归测试集
@@ -114,7 +120,9 @@ PromptOps-Evaluation-Lab/
 
 - 浏览器端使用确定性 Mock 响应，用于演示 PromptOps 流程，不代表真实模型质量。
 - 浏览器草稿只保存在当前设备的 `localStorage`，不会修改仓库中的 JSON 数据。
-- Python 端默认同样使用模拟响应。接入真实 LLM 时，可替换 `backend/promptops.py` 中的 `simulate_response`，保留现有评分和报告结构。
+- Python 端默认使用确定性模拟响应；`--provider ollama` 或 API 查询参数可以调用本机 Ollama。每个用例单独保存 `error`、耗时和 Token，单个失败不会中断整批评估，也不会伪造模拟结果。
+- 浏览器页面仍使用本地模拟器，避免 GitHub Pages 暴露模型服务地址或 Prompt 内容；真实模型评测通过 CLI / FastAPI 在本机执行。
+- 当前评分是关键字、格式、禁止词和拒答的静态规则，不能替代人工质量评审或独立盲测。
 
 ## License
 

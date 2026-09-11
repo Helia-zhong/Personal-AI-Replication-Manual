@@ -19,7 +19,7 @@
 | 项目 | 简介 | 在线入口 |
 | --- | --- | --- |
 | AgentFlow Visualizer | 多页面资料处理与人工审核、FastAPI / SQLite、可选 Ollama 模型与评测面板 | [打开](AgentFlow-Visualizer/index.html) |
-| PromptOps Evaluation Lab | 多页面 Prompt 版本、回归测试、发布门禁与报告控制台 | [打开](PromptOps-Evaluation-Lab/web/index.html) |
+| PromptOps Evaluation Lab | 多页面 Prompt 版本、回归测试、发布门禁、真实 Ollama 评估与报告控制台 | [打开](PromptOps-Evaluation-Lab/web/index.html) |
 | RAG Evaluation Studio | 多页面 BM25 检索、引用评测、知识库与 Top-K 实验工作台 | [打开](RAG-Evaluation-Studio/web/index.html) |
 | Agent Run Monitor | 多页面 Agent Trace、异常诊断、运行健康度与成本性能控制台 | [打开](Agent-Run-Monitor/web/index.html) |
 | AI Content QA Workbench | 多页面声明复核、证据核验、发布门禁与审核报告工作台 | [打开](AI-Content-QA-Workbench/web/index.html) |
