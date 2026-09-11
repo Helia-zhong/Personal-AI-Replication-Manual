@@ -1,0 +1,910 @@
+{
+  "top_k": 3,
+  "provider": "deterministic",
+  "model": null,
+  "corpus_size": 6,
+  "case_count": 5,
+  "failed_generations": 0,
+  "aggregate": {
+    "top_hit": 1.0,
+    "recall_at_k": 0.9,
+    "precision_at_k": 0.3333,
+    "mrr": 1.0,
+    "citation_recall": 0.9,
+    "citation_precision": 0.3333,
+    "keyword_coverage": 0.5167,
+    "overall": 0.6917
+  },
+  "results": [
+    {
+      "id": "rag-001",
+      "question": "RAG 知识库切片为什么不能太短或太长？",
+      "expected_doc_ids": [
+        "kb-001"
+      ],
+      "retrieved": [
+        {
+          "id": "kb-001",
+          "title": "知识库切片策略",
+          "category": "retrieval",
+          "score": 11.3872,
+          "snippet": "面向企业知识问答的 RAG 系统应优先使用语义完整的切片。",
+          "matched_tokens": [
+            "rag",
+            "切",
+            "库",
+            "片",
+            "知",
+            "短",
+            "识",
+            "长"
+          ],
+          "contributions": {
+            "rag": 0.4234,
+            "切": 2.4623,
+            "库": 0.9867,
+            "片": 1.108,
+            "知": 1.4103,
+            "短": 1.4762,
+            "识": 1.4103,
+            "长": 2.11
+          },
+          "rank": 1,
+          "truncated": true,
+          "query_tokens": [
+            "rag",
+            "知",
+            "识",
+            "库",
+            "切",
+            "片",
+            "什",
+            "么",
+            "不",
+            "能",
+            "太",
+            "短",
+            "太",
+            "长"
+          ]
+        },
+        {
+          "id": "kb-003",
+          "title": "权限与隐私处理",
+          "category": "governance",
+          "score": 4.5027,
+          "snippet": "知识库检索需要遵守权限边界。",
+          "matched_tokens": [
+            "不",
+            "库",
+            "知",
+            "能",
+            "识"
+          ],
+          "contributions": {
+            "不": 0.4363,
+            "库": 1.0166,
+            "知": 1.0166,
+            "能": 1.0166,
+            "识": 1.0166
+          },
+          "rank": 2,
+          "truncated": true,
+          "query_tokens": [
+            "rag",
+            "知",
+            "识",
+            "库",
+            "切",
+            "片",
+            "什",
+            "么",
+            "不",
+            "能",
+            "太",
+            "短",
+            "太",
+            "长"
+          ]
+        },
+        {
+          "id": "kb-004",
+          "title": "Embedding 与重排",
+          "category": "retrieval",
+          "score": 2.2273,
+          "snippet": "reranker 用于对候选片段重新排序，通常能提升 Top-3 引用质量，但会增加延迟和成本。",
+          "matched_tokens": [
+            "不",
+            "片",
+            "能"
+          ],
+          "contributions": {
+            "不": 0.4546,
+            "片": 0.7132,
+            "能": 1.0594
+          },
+          "rank": 3,
+          "truncated": true,
+          "query_tokens": [
+            "rag",
+            "知",
+            "识",
+            "库",
+            "切",
+            "片",
+            "什",
+            "么",
+            "不",
+            "能",
+            "太",
+            "短",
+            "太",
+            "长"
+          ]
+        }
+      ],
+      "answer": "根据 知识库切片策略，可以先回答：面向企业知识问答的 RAG 系统应优先使用语义完整的切片。 [kb-001]；知识库检索需要遵守权限边界。 [kb-003]",
+      "generation": {
+        "provider": "deterministic",
+        "model": null,
+        "latency_ms": null,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null,
+        "error": null
+      },
+      "metrics": {
+        "top_hit": 1.0,
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.3333,
+        "mrr": 1.0,
+        "citation_recall": 1.0,
+        "citation_precision": 0.3333,
+        "keyword_coverage": 0.3333,
+        "overall": 0.6667
+      },
+      "keyword_hits": [
+        "语义完整"
+      ],
+      "diagnostics": {
+        "first_expected_rank": 1,
+        "missing_expected_doc_ids": [],
+        "unexpected_doc_ids": [
+          "kb-003",
+          "kb-004"
+        ],
+        "missing_terms": [
+          "上下文",
+          "检索精度"
+        ],
+        "failure_reasons": [
+          "irrelevant_source_retrieved",
+          "answer_keyword_missing"
+        ]
+      }
+    },
+    {
+      "id": "rag-002",
+      "question": "如果检索材料没有覆盖问题关键点，答案应该怎么处理？",
+      "expected_doc_ids": [
+        "kb-002"
+      ],
+      "retrieved": [
+        {
+          "id": "kb-002",
+          "title": "引用答案生成规范",
+          "category": "generation",
+          "score": 13.501,
+          "snippet": "若检索片段没有覆盖问题关键点，应明确提示信息不足，避免编造。",
+          "matched_tokens": [
+            "关",
+            "料",
+            "有",
+            "材",
+            "案",
+            "检",
+            "没",
+            "点",
+            "盖",
+            "答",
+            "索",
+            "覆",
+            "键",
+            "问",
+            "题"
+          ],
+          "contributions": {
+            "关": 0.6742,
+            "料": 1.4983,
+            "有": 1.0014,
+            "材": 1.4983,
+            "案": 1.217,
+            "检": 0.3338,
+            "没": 1.4983,
+            "点": 1.0014,
+            "盖": 1.0014,
+            "答": 0.7758,
+            "索": 0.3338,
+            "覆": 1.0014,
+            "键": 1.0014,
+            "问": 0.2346,
+            "题": 0.4297
+          },
+          "rank": 1,
+          "truncated": true,
+          "query_tokens": [
+            "如",
+            "果",
+            "检",
+            "索",
+            "材",
+            "料",
+            "没",
+            "有",
+            "覆",
+            "盖",
+            "问",
+            "题",
+            "关",
+            "键",
+            "点",
+            "答",
+            "案",
+            "该",
+            "怎",
+            "么",
+            "处",
+            "理"
+          ]
+        },
+        {
+          "id": "kb-005",
+          "title": "人工反馈闭环",
+          "category": "evaluation",
+          "score": 5.7673,
+          "snippet": "RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。",
+          "matched_tokens": [
+            "案",
+            "点",
+            "盖",
+            "答",
+            "覆",
+            "问",
+            "题"
+          ],
+          "contributions": {
+            "案": 1.1519,
+            "点": 1.0594,
+            "盖": 1.0594,
+            "答": 0.7343,
+            "覆": 1.0594,
+            "问": 0.2481,
+            "题": 0.4546
+          },
+          "rank": 2,
+          "truncated": true,
+          "query_tokens": [
+            "如",
+            "果",
+            "检",
+            "索",
+            "材",
+            "料",
+            "没",
+            "有",
+            "覆",
+            "盖",
+            "问",
+            "题",
+            "关",
+            "键",
+            "点",
+            "答",
+            "案",
+            "该",
+            "怎",
+            "么",
+            "处",
+            "理"
+          ]
+        },
+        {
+          "id": "kb-003",
+          "title": "权限与隐私处理",
+          "category": "governance",
+          "score": 5.0708,
+          "snippet": "用户只能检索自己有权访问的文档。",
+          "matched_tokens": [
+            "处",
+            "有",
+            "检",
+            "理",
+            "索",
+            "问"
+          ],
+          "contributions": {
+            "处": 1.521,
+            "有": 1.0166,
+            "检": 0.3374,
+            "理": 1.521,
+            "索": 0.3374,
+            "问": 0.3374
+          },
+          "rank": 3,
+          "truncated": true,
+          "query_tokens": [
+            "如",
+            "果",
+            "检",
+            "索",
+            "材",
+            "料",
+            "没",
+            "有",
+            "覆",
+            "盖",
+            "问",
+            "题",
+            "关",
+            "键",
+            "点",
+            "答",
+            "案",
+            "该",
+            "怎",
+            "么",
+            "处",
+            "理"
+          ]
+        }
+      ],
+      "answer": "根据 引用答案生成规范，可以先回答：若检索片段没有覆盖问题关键点，应明确提示信息不足，避免编造。 [kb-002]；RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。 [kb-005]",
+      "generation": {
+        "provider": "deterministic",
+        "model": null,
+        "latency_ms": null,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null,
+        "error": null
+      },
+      "metrics": {
+        "top_hit": 1.0,
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.3333,
+        "mrr": 1.0,
+        "citation_recall": 1.0,
+        "citation_precision": 0.3333,
+        "keyword_coverage": 1.0,
+        "overall": 0.8667
+      },
+      "keyword_hits": [
+        "信息不足",
+        "避免编造",
+        "引用"
+      ],
+      "diagnostics": {
+        "first_expected_rank": 1,
+        "missing_expected_doc_ids": [],
+        "unexpected_doc_ids": [
+          "kb-003",
+          "kb-005"
+        ],
+        "missing_terms": [],
+        "failure_reasons": [
+          "irrelevant_source_retrieved"
+        ]
+      }
+    },
+    {
+      "id": "rag-003",
+      "question": "RAG 系统怎样处理用户权限和敏感日志？",
+      "expected_doc_ids": [
+        "kb-003"
+      ],
+      "retrieved": [
+        {
+          "id": "kb-003",
+          "title": "权限与隐私处理",
+          "category": "governance",
+          "score": 15.5086,
+          "snippet": "日志中不应保存原始敏感信息，可以保留脱敏后的查询、命中文档 ID、评分和耗时。",
+          "matched_tokens": [
+            "处",
+            "志",
+            "感",
+            "户",
+            "敏",
+            "日",
+            "权",
+            "理",
+            "用",
+            "限"
+          ],
+          "contributions": {
+            "处": 1.521,
+            "志": 1.521,
+            "感": 1.521,
+            "户": 1.0166,
+            "敏": 2.1553,
+            "日": 1.521,
+            "权": 2.5033,
+            "理": 1.521,
+            "用": 0.0732,
+            "限": 2.1553
+          },
+          "rank": 1,
+          "truncated": true,
+          "query_tokens": [
+            "rag",
+            "系",
+            "统",
+            "怎",
+            "样",
+            "处",
+            "理",
+            "用",
+            "户",
+            "权",
+            "限",
+            "敏",
+            "感",
+            "日",
+            "志"
+          ]
+        },
+        {
+          "id": "kb-005",
+          "title": "人工反馈闭环",
+          "category": "evaluation",
+          "score": 5.3247,
+          "snippet": "RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。",
+          "matched_tokens": [
+            "rag",
+            "户",
+            "样",
+            "用",
+            "系",
+            "统"
+          ],
+          "contributions": {
+            "rag": 0.4546,
+            "户": 1.0594,
+            "样": 1.5851,
+            "用": 0.1067,
+            "系": 1.0594,
+            "统": 1.0594
+          },
+          "rank": 2,
+          "truncated": true,
+          "query_tokens": [
+            "rag",
+            "系",
+            "统",
+            "怎",
+            "样",
+            "处",
+            "理",
+            "用",
+            "户",
+            "权",
+            "限",
+            "敏",
+            "感",
+            "日",
+            "志"
+          ]
+        },
+        {
+          "id": "kb-001",
+          "title": "知识库切片策略",
+          "category": "retrieval",
+          "score": 2.4678,
+          "snippet": "面向企业知识问答的 RAG 系统应优先使用语义完整的切片。",
+          "matched_tokens": [
+            "rag",
+            "用",
+            "系",
+            "统"
+          ],
+          "contributions": {
+            "rag": 0.4234,
+            "用": 0.071,
+            "系": 0.9867,
+            "统": 0.9867
+          },
+          "rank": 3,
+          "truncated": true,
+          "query_tokens": [
+            "rag",
+            "系",
+            "统",
+            "怎",
+            "样",
+            "处",
+            "理",
+            "用",
+            "户",
+            "权",
+            "限",
+            "敏",
+            "感",
+            "日",
+            "志"
+          ]
+        }
+      ],
+      "answer": "根据 权限与隐私处理，可以先回答：日志中不应保存原始敏感信息，可以保留脱敏后的查询、命中文档 ID、评分和耗时。 [kb-003]；RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。 [kb-005]",
+      "generation": {
+        "provider": "deterministic",
+        "model": null,
+        "latency_ms": null,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null,
+        "error": null
+      },
+      "metrics": {
+        "top_hit": 1.0,
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.3333,
+        "mrr": 1.0,
+        "citation_recall": 1.0,
+        "citation_precision": 0.3333,
+        "keyword_coverage": 0.3333,
+        "overall": 0.6667
+      },
+      "keyword_hits": [
+        "脱敏"
+      ],
+      "diagnostics": {
+        "first_expected_rank": 1,
+        "missing_expected_doc_ids": [],
+        "unexpected_doc_ids": [
+          "kb-001",
+          "kb-005"
+        ],
+        "missing_terms": [
+          "权限边界",
+          "审计记录"
+        ],
+        "failure_reasons": [
+          "irrelevant_source_retrieved",
+          "answer_keyword_missing"
+        ]
+      }
+    },
+    {
+      "id": "rag-004",
+      "question": "Embedding、BM25 和 reranker 分别适合什么场景？",
+      "expected_doc_ids": [
+        "kb-004"
+      ],
+      "retrieved": [
+        {
+          "id": "kb-004",
+          "title": "Embedding 与重排",
+          "category": "retrieval",
+          "score": 9.3189,
+          "snippet": "Embedding 适合语义相近但字面不同的问题，BM25 适合精确术语匹配。",
+          "matched_tokens": [
+            "bm25",
+            "embedding",
+            "reranker",
+            "合",
+            "适"
+          ],
+          "contributions": {
+            "bm25": 1.5851,
+            "embedding": 2.2188,
+            "reranker": 1.5851,
+            "合": 1.7111,
+            "适": 2.2188
+          },
+          "rank": 1,
+          "truncated": true,
+          "query_tokens": [
+            "embedding",
+            "bm25",
+            "reranker",
+            "分",
+            "别",
+            "适",
+            "合",
+            "什",
+            "么",
+            "场",
+            "景"
+          ]
+        },
+        {
+          "id": "kb-003",
+          "title": "权限与隐私处理",
+          "category": "governance",
+          "score": 1.2547,
+          "snippet": "日志中不应保存原始敏感信息，可以保留脱敏后的查询、命中文档 ID、评分和耗时。",
+          "matched_tokens": [
+            "分",
+            "合"
+          ],
+          "contributions": {
+            "分": 0.2381,
+            "合": 1.0166
+          },
+          "rank": 2,
+          "truncated": true,
+          "query_tokens": [
+            "embedding",
+            "bm25",
+            "reranker",
+            "分",
+            "别",
+            "适",
+            "合",
+            "什",
+            "么",
+            "场",
+            "景"
+          ]
+        },
+        {
+          "id": "kb-005",
+          "title": "人工反馈闭环",
+          "category": "evaluation",
+          "score": 0.2481,
+          "snippet": "RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。",
+          "matched_tokens": [
+            "分"
+          ],
+          "contributions": {
+            "分": 0.2481
+          },
+          "rank": 3,
+          "truncated": true,
+          "query_tokens": [
+            "embedding",
+            "bm25",
+            "reranker",
+            "分",
+            "别",
+            "适",
+            "合",
+            "什",
+            "么",
+            "场",
+            "景"
+          ]
+        }
+      ],
+      "answer": "根据 Embedding 与重排，可以先回答：Embedding 适合语义相近但字面不同的问题，BM25 适合精确术语匹配。 [kb-004]；日志中不应保存原始敏感信息，可以保留脱敏后的查询、命中文档 ID、评分和耗时。 [kb-003]",
+      "generation": {
+        "provider": "deterministic",
+        "model": null,
+        "latency_ms": null,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null,
+        "error": null
+      },
+      "metrics": {
+        "top_hit": 1.0,
+        "recall_at_k": 1.0,
+        "precision_at_k": 0.3333,
+        "mrr": 1.0,
+        "citation_recall": 1.0,
+        "citation_precision": 0.3333,
+        "keyword_coverage": 0.6667,
+        "overall": 0.7667
+      },
+      "keyword_hits": [
+        "语义相近",
+        "精确术语"
+      ],
+      "diagnostics": {
+        "first_expected_rank": 1,
+        "missing_expected_doc_ids": [],
+        "unexpected_doc_ids": [
+          "kb-003",
+          "kb-005"
+        ],
+        "missing_terms": [
+          "重新排序"
+        ],
+        "failure_reasons": [
+          "irrelevant_source_retrieved",
+          "answer_keyword_missing"
+        ]
+      }
+    },
+    {
+      "id": "rag-005",
+      "question": "上线后的 RAG 系统如何通过人工反馈持续改进？",
+      "expected_doc_ids": [
+        "kb-005",
+        "kb-006"
+      ],
+      "retrieved": [
+        {
+          "id": "kb-005",
+          "title": "人工反馈闭环",
+          "category": "evaluation",
+          "score": 14.7816,
+          "snippet": "RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。",
+          "matched_tokens": [
+            "rag",
+            "上",
+            "人",
+            "反",
+            "后",
+            "工",
+            "改",
+            "系",
+            "线",
+            "统",
+            "馈"
+          ],
+          "contributions": {
+            "rag": 0.4546,
+            "上": 1.0594,
+            "人": 0.9984,
+            "反": 2.2188,
+            "后": 1.0594,
+            "工": 1.483,
+            "改": 1.5851,
+            "系": 1.0594,
+            "线": 1.5851,
+            "统": 1.0594,
+            "馈": 2.2188
+          },
+          "rank": 1,
+          "truncated": true,
+          "query_tokens": [
+            "上",
+            "线",
+            "后",
+            "rag",
+            "系",
+            "统",
+            "如",
+            "何",
+            "通",
+            "过",
+            "人",
+            "工",
+            "反",
+            "馈",
+            "持",
+            "续",
+            "改",
+            "进"
+          ]
+        },
+        {
+          "id": "kb-001",
+          "title": "知识库切片策略",
+          "category": "retrieval",
+          "score": 5.4935,
+          "snippet": "面向企业知识问答的 RAG 系统应优先使用语义完整的切片。",
+          "matched_tokens": [
+            "rag",
+            "上",
+            "系",
+            "统",
+            "过"
+          ],
+          "contributions": {
+            "rag": 0.4234,
+            "上": 0.9867,
+            "系": 0.9867,
+            "统": 0.9867,
+            "过": 2.11
+          },
+          "rank": 2,
+          "truncated": true,
+          "query_tokens": [
+            "上",
+            "线",
+            "后",
+            "rag",
+            "系",
+            "统",
+            "如",
+            "何",
+            "通",
+            "过",
+            "人",
+            "工",
+            "反",
+            "馈",
+            "持",
+            "续",
+            "改",
+            "进"
+          ]
+        },
+        {
+          "id": "kb-003",
+          "title": "权限与隐私处理",
+          "category": "governance",
+          "score": 3.222,
+          "snippet": "涉及个人信息、合同金额或内部策略时，应进行访问控制和审计记录。",
+          "matched_tokens": [
+            "人",
+            "后",
+            "进"
+          ],
+          "contributions": {
+            "人": 0.6844,
+            "后": 1.0166,
+            "进": 1.521
+          },
+          "rank": 3,
+          "truncated": true,
+          "query_tokens": [
+            "上",
+            "线",
+            "后",
+            "rag",
+            "系",
+            "统",
+            "如",
+            "何",
+            "通",
+            "过",
+            "人",
+            "工",
+            "反",
+            "馈",
+            "持",
+            "续",
+            "改",
+            "进"
+          ]
+        }
+      ],
+      "answer": "根据 人工反馈闭环，可以先回答：RAG 系统上线后需要记录用户反馈、低分答案和未命中问题。 [kb-005]；面向企业知识问答的 RAG 系统应优先使用语义完整的切片。 [kb-001]",
+      "generation": {
+        "provider": "deterministic",
+        "model": null,
+        "latency_ms": null,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null,
+        "error": null
+      },
+      "metrics": {
+        "top_hit": 1.0,
+        "recall_at_k": 0.5,
+        "precision_at_k": 0.3333,
+        "mrr": 1.0,
+        "citation_recall": 0.5,
+        "citation_precision": 0.3333,
+        "keyword_coverage": 0.25,
+        "overall": 0.4917
+      },
+      "keyword_hits": [
+        "用户反馈"
+      ],
+      "diagnostics": {
+        "first_expected_rank": 1,
+        "missing_expected_doc_ids": [
+          "kb-006"
+        ],
+        "unexpected_doc_ids": [
+          "kb-001",
+          "kb-003"
+        ],
+        "missing_terms": [
+          "评测集",
+          "召回率",
+          "人工复核"
+        ],
+        "failure_reasons": [
+          "expected_source_missing",
+          "irrelevant_source_retrieved",
+          "answer_keyword_missing"
+        ]
+      }
+    }
+  ]
+}

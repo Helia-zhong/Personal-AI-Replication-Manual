@@ -116,14 +116,17 @@ function bestSnippet(questionTokens, text) {
 
 function retrieve(question, topK = 3, minScore = 0) {
   const queryTokens = tokenize(question);
-  return SEARCH_INDEX.docs.map(doc => ({
+  const ranked = SEARCH_INDEX.docs.map(doc => ({
     id: doc.id,
     title: doc.title,
     category: doc.category,
     text: doc.text,
     score: bm25Score(queryTokens, doc),
-    snippet: bestSnippet(queryTokens, doc.text)
-  })).sort((a, b) => b.score - a.score).filter(item => item.score >= minScore).slice(0, topK);
+    snippet: bestSnippet(queryTokens, doc.text),
+    matchedTokens: [...new Set(queryTokens.filter(token => doc.counts.get(token)))],
+    contributions: Object.fromEntries([...new Set(queryTokens.filter(token => doc.counts.get(token)))].map(token => [token, doc.counts.get(token)]))
+  })).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).filter(item => item.score >= minScore);
+  return ranked.slice(0, topK).map((item, index) => ({ ...item, rank: index + 1, truncated: ranked.length > index + 1, queryTokens }));
 }
 
 function synthesizeAnswer(retrieved) {
@@ -144,8 +147,10 @@ function evaluateCase(testCase, topK = 3) {
   const citationPrecision = hits.length / Math.max(retrievedIds.length, 1);
   const keywordCoverage = keywordHits.length / Math.max(testCase.expectedTerms.length, 1);
   const topHit = retrievedIds.length && expectedIds.has(retrievedIds[0]) ? 1 : 0;
-  const overall = 0.35 * citationRecall + 0.2 * citationPrecision + 0.3 * keywordCoverage + 0.15 * topHit;
-  return { ...testCase, retrieved, answer, keywordHits, metrics: { topHit, citationRecall, citationPrecision, keywordCoverage, overall } };
+  const reciprocalRank = retrievedIds.findIndex(id => expectedIds.has(id)) >= 0 ? 1 / (retrievedIds.findIndex(id => expectedIds.has(id)) + 1) : 0;
+  const overall = 0.3 * citationRecall + 0.2 * citationPrecision + 0.3 * keywordCoverage + 0.1 * topHit + 0.1 * reciprocalRank;
+  const missingTerms = testCase.expectedTerms.filter(term => !keywordHits.includes(term));
+  return { ...testCase, retrieved, answer, keywordHits, diagnostics: { firstExpectedRank: reciprocalRank ? 1 / reciprocalRank : null, missingExpectedDocIds: testCase.expectedDocIds.filter(id => !retrievedIds.includes(id)), unexpectedDocIds: retrievedIds.filter(id => !expectedIds.has(id)), missingTerms, failureReasons: [citationRecall < 1 ? 'expected_source_missing' : '', citationPrecision < 1 ? 'irrelevant_source_retrieved' : '', reciprocalRank === 0 ? 'expected_source_not_retrieved' : '', missingTerms.length ? 'answer_keyword_missing' : ''].filter(Boolean) }, metrics: { topHit, recallAtK: citationRecall, precisionAtK: citationPrecision, mrr: reciprocalRank, citationRecall, citationPrecision, keywordCoverage, overall } };
 }
 
 function evaluateAll(topK = 3) {
@@ -202,7 +207,7 @@ function initQueryLab() {
     const maxScore = Math.max(...retrieved.map(item => item.score), 1);
     list.innerHTML = retrieved.map((item, index) => `<button class="retrieval-item ${item.id === activeDocumentId ? 'active' : ''}" type="button" data-document="${item.id}">
       <span class="rank-box">${String(index + 1).padStart(2, '0')}</span>
-      <span class="retrieval-copy"><header><h3>${escapeHtml(item.title)}</h3><span class="category-chip">${CATEGORY_LABELS[item.category]}</span></header><p>${escapeHtml(item.snippet)}</p></span>
+      <span class="retrieval-copy"><header><h3>${escapeHtml(item.title)}</h3><span class="category-chip">${CATEGORY_LABELS[item.category]}</span></header><p>${escapeHtml(item.snippet)}</p><small class="match-meta">命中词元：${item.matchedTokens?.join('、') || '无'} · ${item.truncated ? '还有候选未展示' : '已展示全部候选'}</small></span>
       <span class="score-box"><strong>${item.score.toFixed(2)}</strong><small>BM25 SCORE</small><span class="score-track"><i style="width:${Math.max(3, item.score / maxScore * 100)}%"></i></span></span>
     </button>`).join('');
   }
@@ -327,10 +332,11 @@ function initEvaluation() {
     status.textContent = item.metrics.overall >= 0.7 ? 'PASS' : 'REVIEW';
     status.className = `status-chip ${item.metrics.overall >= 0.7 ? '' : 'warning'}`;
     document.getElementById('evalDetail').innerHTML = `
-      <div class="detail-metrics"><div><span>OVERALL</span><strong>${score100(item.metrics.overall)}</strong></div><div><span>TOP HIT</span><strong>${pct(item.metrics.topHit)}</strong></div><div><span>CITATION RECALL</span><strong>${pct(item.metrics.citationRecall)}</strong></div><div><span>CITATION PRECISION</span><strong>${pct(item.metrics.citationPrecision)}</strong></div></div>
+      <div class="detail-metrics"><div><span>OVERALL</span><strong>${score100(item.metrics.overall)}</strong></div><div><span>TOP HIT</span><strong>${pct(item.metrics.topHit)}</strong></div><div><span>MRR</span><strong>${pct(item.metrics.mrr)}</strong></div><div><span>CITATION RECALL</span><strong>${pct(item.metrics.citationRecall)}</strong></div><div><span>CITATION PRECISION</span><strong>${pct(item.metrics.citationPrecision)}</strong></div></div>
       <div class="detail-block"><h3>问题</h3><p>${escapeHtml(item.question)}</p></div>
       <div class="detail-block"><h3>答案</h3><p>${escapeHtml(item.answer)}</p></div>
       <div class="detail-block"><h3>答案要点</h3><div class="chip-list">${item.expectedTerms.map(term => `<span class="term-chip ${item.keywordHits.includes(term) ? '' : 'missed'}">${escapeHtml(term)}</span>`).join('')}</div></div>
+      <div class="detail-block"><h3>排名诊断</h3><div class="diagnostic-list"><span>首个期望来源：<b>${item.diagnostics?.firstExpectedRank ? `第 ${item.diagnostics.firstExpectedRank} 位` : '未召回'}</b></span><span>缺失来源：<b>${item.diagnostics?.missingExpectedDocIds?.join(', ') || '无'}</b></span><span>无关来源：<b>${item.diagnostics?.unexpectedDocIds?.join(', ') || '无'}</b></span><span>缺失要点：<b>${item.diagnostics?.missingTerms?.join('、') || '无'}</b></span></div></div>
       <div class="detail-block"><h3>检索文档</h3><div class="retrieved-mini">${item.retrieved.map(doc => `<div><span><strong>${doc.id} · ${escapeHtml(doc.title)}</strong><small>${CATEGORY_LABELS[doc.category]}</small></span><b>${doc.score.toFixed(2)}</b></div>`).join('')}</div></div>`;
   }
 
