@@ -90,7 +90,12 @@ def audit_claim(sample: dict[str, Any], claim: str) -> dict[str, Any]:
 
 
 def audit_sample(sample: dict[str, Any]) -> dict[str, Any]:
-    claims = [audit_claim(sample, claim) for claim in split_claims(sample["content"])]
+    claims = []
+    for index, claim in enumerate(split_claims(sample["content"]), start=1):
+        item = audit_claim(sample, claim)
+        item["claim_id"] = f"{sample['id']}:claim-{index:03d}"
+        item["index"] = index - 1
+        claims.append(item)
     cited_count = sum(1 for claim in claims if claim["citations"])
     issue_count = sum(len(claim["issues"]) for claim in claims)
     high_count = sum(1 for claim in claims for issue in claim["issues"] if issue["severity"] == "high")
@@ -105,23 +110,38 @@ def audit_sample(sample: dict[str, Any]) -> dict[str, Any]:
     else:
         risk_level = "ok"
 
+    metrics = {
+        "claim_count": len(claims),
+        "citation_coverage": round(cited_count / max(len(claims), 1), 4),
+        "average_support": round(average_support, 4),
+        "issue_count": issue_count,
+        "high_count": high_count,
+        "risk_level": risk_level,
+    }
     return {
         "id": sample["id"],
         "title": sample["title"],
-        "metrics": {
-            "claim_count": len(claims),
-            "citation_coverage": round(cited_count / max(len(claims), 1), 4),
-            "average_support": round(average_support, 4),
-            "issue_count": issue_count,
-            "risk_level": risk_level,
-        },
+        "metrics": metrics,
+        "gate": release_gate(metrics),
         "claims": claims,
         "sources": sample["sources"],
+        "source": sample.get("source", "imported"),
     }
 
 
-def audit_all() -> dict[str, Any]:
-    samples = [audit_sample(sample) for sample in load_samples()]
+def release_gate(metrics: dict[str, Any]) -> dict[str, Any]:
+    gates = [
+        {"label": "引用覆盖率不低于 75%", "value": metrics["citation_coverage"], "passed": metrics["citation_coverage"] >= 0.75},
+        {"label": "来源支持度不低于 75%", "value": metrics["average_support"], "passed": metrics["average_support"] >= 0.75},
+        {"label": "高危问题必须为 0", "value": metrics["high_count"], "passed": metrics["high_count"] == 0},
+        {"label": "问题总数不超过 1", "value": metrics["issue_count"], "passed": metrics["issue_count"] <= 1},
+    ]
+    score = round((metrics["citation_coverage"] * 0.25 + metrics["average_support"] * 0.35 + (0.2 if metrics["high_count"] == 0 else 0) + (0.2 if metrics["issue_count"] <= 1 else 0)) * 100)
+    return {"passed": all(gate["passed"] for gate in gates), "score": score, "gates": gates}
+
+
+def audit_all(source_samples: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    samples = [audit_sample(sample) for sample in (load_samples() if source_samples is None else source_samples)]
     aggregate = {
         "sample_count": len(samples),
         "avg_citation_coverage": round(

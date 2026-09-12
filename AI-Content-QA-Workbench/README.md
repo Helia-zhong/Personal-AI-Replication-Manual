@@ -1,8 +1,8 @@
 # AI Content QA Workbench
 
-AI Content QA Workbench 是一个多页面 AI 生成内容质量审核工作台，用确定性规则检查声明、引用覆盖、来源支持度、数字来源、绝对化表达和引用 ID 完整性。
+AI Content QA Workbench 是一个多页面 AI 生成内容质量审核工作台，用确定性规则检查声明、引用覆盖、来源支持度、数字来源、绝对化表达和引用 ID 完整性。现在支持内容 JSON 导入、SQLite 审核工作区、批量冲突检查和可复现报告。
 
-项目同时提供可部署到 GitHub Pages 的浏览器控制台、Python CLI 和 FastAPI 接口。浏览器端镜像 Python 后端的声明切分、词元匹配、支持度和风险分级公式，使用本地内容与证据，不需要 API Key。
+项目同时提供可部署到 GitHub Pages 的浏览器控制台、Python CLI 和 FastAPI 接口。浏览器端镜像 Python 后端的声明切分、词元匹配、支持度和风险分级公式，使用本地内容与证据，不需要 API Key；三端共用同一份输入约束与发布门禁口径。
 
 ## 在线入口
 
@@ -27,6 +27,8 @@ AI Content QA Workbench 是一个多页面 AI 生成内容质量审核工作台�
 - 支持来源全文搜索、内容筛选和引用关系检查。
 - 使用 4 项质量门禁输出 `PASS` 或 `HOLD` 发布决策。
 - 支持 JSON 与 Markdown 审核报告导出。
+- 支持演示样本、本地 JSON 导入和 SQLite 工作区三种数据源；数据源状态会在四个页面间保持。
+- 同一内容 ID 的重复导入幂等，不同内容冲突返回 `409`，批量写入失败时整批回滚。
 
 ## 快速运行
 
@@ -49,6 +51,7 @@ http://127.0.0.1:8000/web/index.html
 ```bash
 python scripts/audit_content.py
 python scripts/audit_content.py --sample-id content-002
+python scripts/audit_content.py --input ./samples.json --output ./audit.json
 ```
 
 ### FastAPI 接口
@@ -63,9 +66,11 @@ python app.py
 
 ```text
 GET http://127.0.0.1:8050/health
-GET http://127.0.0.1:8050/api/samples
-GET http://127.0.0.1:8050/api/audit
-GET http://127.0.0.1:8050/api/audit/content-002
+GET  http://127.0.0.1:8050/health
+GET  http://127.0.0.1:8050/api/samples
+POST http://127.0.0.1:8050/api/samples
+GET  http://127.0.0.1:8050/api/audit
+GET  http://127.0.0.1:8050/api/audit/content-002
 ```
 
 ## 审核规则
@@ -78,7 +83,7 @@ GET http://127.0.0.1:8050/api/audit/content-002
 | `weak_source_match` | 中危 | 有引用但来源支持度低于 `0.2` |
 | `unknown_source` | 高危 | 引用 ID 无法关联到来源材料 |
 
-当前样本共 12 条声明，平均引用覆盖率 `75%`、平均来源支持度 `83.92%`，识别 5 个规则问题。
+当前内置样本共 12 条声明，平均引用覆盖率约 `75%`、平均来源支持度约 `84%`，识别 5 个规则问题。导入内容会按同一规则重新计算。
 
 ## 发布门禁
 
@@ -96,12 +101,19 @@ AI-Content-QA-Workbench/
 ├── README.md
 ├── backend/
 │   ├── app.py               FastAPI 服务
+│   ├── contracts.py         内容与来源输入契约
 │   ├── content_qa.py        声明、引用、支持度和风险引擎
+│   ├── store.py              SQLite 内容工作区
+│   └── test_content_qa.py   后端回归测试
 │   └── requirements.txt
 ├── data/
 │   └── content_samples.json 内容与来源样本
 ├── scripts/
-│   └── audit_content.py     CLI 入口
+│   └── audit_content.py     CLI 入口与 JSON 报告
+├── tests/
+│   └── data.test.cjs        浏览器契约测试
+├── start.ps1                本地服务启动脚本
+├── requirements.lock        锁定依赖
 └── web/
     ├── index.html           质量总览
     ├── review.html          声明复核
@@ -113,9 +125,10 @@ AI-Content-QA-Workbench/
 
 ## 运行边界
 
-- 当前内容、来源和审核结果均为项目内置演示数据。
+- 内置内容是演示数据；本地工作区可通过 JSON 导入保存自己的内容和来源。
 - 支持度使用词元重合计算，不等同于语义蕴含或事实正确性判断。
-- 生产接入可增加网页/PDF 检索、LLM 声明抽取、NLI 判断和人工审核接口，同时保留现有规则作为确定性基线。
+- 浏览器处置状态保存在当前浏览器；SQLite 保存内容输入，二者不会自动互相复制。
+- 生产接入可增加网页/PDF 检索、LLM 声明抽取、NLI 判断和多人审核权限，同时保留现有规则作为确定性基线。
 
 ## License
 

@@ -1,4 +1,4 @@
-const SAMPLES = [
+let SAMPLES = [
   { id: 'content-001', title: '企业知识助手上线说明', content: '企业知识助手已支持对内部制度、项目文档和 FAQ 的统一检索，并可在答案中附带来源引用 [S1]。系统默认保留近 30 天的脱敏查询日志，用于质量评估 [S2]。它可以回答所有业务问题并保证完全正确。遇到权限不足的资料时，助手会提示无法访问并记录审计事件 [S3]。', sources: [
     { id: 'S1', title: '知识助手版本记录', text: '当前版本支持内部制度、项目文档和 FAQ 的统一检索。答案可以附带来源引用，便于用户回看原始资料。' },
     { id: 'S2', title: '日志保留策略', text: '系统默认保留 30 天脱敏查询日志。日志用于质量评估，不包含原始敏感字段。' },
@@ -64,13 +64,36 @@ function auditSample(sample) {
   return { sample, claims, metrics: { claimCount: claims.length, citationCoverage: citedCount / Math.max(claims.length, 1), averageSupport, issueCount, highCount, risk } };
 }
 
-const AUDITS = SAMPLES.map(auditSample);
-const ALL_CLAIMS = AUDITS.flatMap(audit => audit.claims.map(claim => ({ ...claim, sampleId: audit.sample.id, sampleTitle: audit.sample.title })));
-const ALL_ISSUES = ALL_CLAIMS.flatMap(claim => claim.issues.map(issue => ({ ...issue, sampleId: claim.sampleId, claim: claim.claim, claimIndex: claim.index })));
+let AUDITS = [], ALL_CLAIMS = [], ALL_ISSUES = [];
+function rebuildDataset() {
+  AUDITS = SAMPLES.map(auditSample);
+  ALL_CLAIMS = AUDITS.flatMap(audit => audit.claims.map(claim => ({ ...claim, sampleId: audit.sample.id, sampleTitle: audit.sample.title })));
+  ALL_ISSUES = ALL_CLAIMS.flatMap(claim => claim.issues.map(issue => ({ ...issue, sampleId: claim.sampleId, claim: claim.claim, claimIndex: claim.index })));
+}
+rebuildDataset();
 function riskLabel(risk) { return ({ high: '高风险', medium: '中风险', low: '低风险', ok: '通过' })[risk]; }
 function riskClass(risk) { return risk === 'high' ? 'danger' : risk === 'medium' || risk === 'low' ? 'warning' : ''; }
 function selectedSample() { const stored = storageGet(STORAGE_KEYS.sample, SAMPLES[0].id); return SAMPLES.find(sample => sample.id === stored) || SAMPLES[0]; }
 function selectSample(sampleId) { storageSet(STORAGE_KEYS.sample, sampleId); }
+
+function validateSamples(payload, maxSamples = 100, allowEmpty = false) {
+  const samples = Array.isArray(payload) ? payload : payload?.samples;
+  const identifier = /^[A-Za-z0-9_.-]{1,100}$/;
+  if (!Array.isArray(samples) || (!allowEmpty && !samples.length) || samples.length > maxSamples) throw Error('内容数量必须在 1–100 条之间。');
+  const seen = new Set();
+  return samples.map(sample => {
+    if (!sample || !identifier.test(sample.id || '') || seen.has(sample.id)) throw Error('内容 ID 无效或重复。');
+    if (typeof sample.title !== 'string' || !sample.title.trim() || sample.title.length > 200 || typeof sample.content !== 'string' || sample.content.trim().length < 8 || sample.content.length > 200000) throw Error('内容标题或正文无效。');
+    if (!Array.isArray(sample.sources) || sample.sources.length > 200) throw Error('来源数量无效。');
+    const sourceIds = new Set();
+    const sources = sample.sources.map(source => {
+      if (!source || !identifier.test(source.id || '') || sourceIds.has(source.id) || typeof source.title !== 'string' || !source.title.trim() || source.title.length > 200 || typeof source.text !== 'string' || !source.text.trim() || source.text.length > 10000) throw Error('来源 ID、标题或正文无效。');
+      sourceIds.add(source.id); return { id: source.id, title: source.title, text: source.text };
+    });
+    seen.add(sample.id);
+    return { id: sample.id, title: sample.title, content: sample.content, source: sample.source === 'sample' ? 'sample' : 'imported', sources };
+  });
+}
 
 function sizeCanvas(canvas) { const rect = canvas.getBoundingClientRect(); if (!rect.width || !rect.height) return null; const ratio = window.devicePixelRatio || 1; canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); const context = canvas.getContext('2d'); context.setTransform(ratio, 0, 0, ratio, 0, 0); return { context, width: rect.width, height: rect.height }; }
 function drawGrid(context, width, height, left, right, top, bottom) { const plotHeight = height - top - bottom; [0, 25, 50, 75, 100].forEach(value => { const y = top + plotHeight - plotHeight * value / 100; context.strokeStyle = '#e3e9e6'; context.beginPath(); context.moveTo(left, y); context.lineTo(width - right, y); context.stroke(); context.fillStyle = '#89958f'; context.font = '8px Segoe UI'; context.textAlign = 'right'; context.fillText(String(value), left - 7, y + 3); }); }
@@ -88,7 +111,7 @@ function initDashboard() {
   const issueControl = Math.max(0, 1 - aggregate.issues / aggregate.claimCount), readiness = Math.round((aggregate.coverage * .4 + aggregate.support * .4 + issueControl * .2) * 100);
   document.getElementById('readinessScore').textContent = readiness; const status = document.getElementById('readinessStatus'); status.textContent = readiness >= 85 ? 'READY' : 'REVIEW'; status.className = `status-chip ${readiness >= 85 ? '' : 'warning'}`;
   document.getElementById('qualityBars').innerHTML = [['引用覆盖', aggregate.coverage * 100], ['来源支持', aggregate.support * 100], ['问题控制', issueControl * 100]].map(([label, value]) => `<div class="quality-bar"><header><span>${label}</span><b>${Math.round(value)}</b></header><div class="quality-track"><i style="width:${value}%"></i></div></div>`).join('');
-  document.getElementById('readinessNote').textContent = '三份内容均存在无引用声明；两处绝对化表达需要发布前改写。';
+  document.getElementById('readinessNote').textContent = `${ALL_ISSUES.length} 个规则问题需要处理；高危问题 ${ALL_ISSUES.filter(issue => issue.severity === 'high').length} 个。`;
 
   function renderSamples() { const data = AUDITS.filter(audit => riskFilter.value === 'all' || audit.metrics.risk === riskFilter.value); document.getElementById('dashboardResultCount').textContent = `${data.length} ITEMS`; document.getElementById('dashboardSamples').innerHTML = data.length ? data.map(audit => `<article class="sample-row"><span class="sample-main"><strong>${escapeHtml(audit.sample.title)}</strong><small>${escapeHtml(audit.sample.content)}</small></span><span class="sample-stat"><span>风险</span><strong>${riskLabel(audit.metrics.risk)}</strong></span><span class="sample-stat"><span>声明</span><strong>${audit.metrics.claimCount}</strong></span><span class="sample-stat"><span>覆盖</span><strong>${pct(audit.metrics.citationCoverage)}</strong></span><span class="sample-stat"><span>问题</span><strong>${audit.metrics.issueCount}</strong></span><a class="row-link" href="review.html?sample=${encodeURIComponent(audit.sample.id)}" aria-label="复核 ${escapeHtml(audit.sample.title)}"><i data-lucide="arrow-up-right"></i></a></article>`).join('') : '<div class="empty-state">没有匹配的内容样本。</div>'; refreshIcons(); }
   const issueCounts = ALL_ISSUES.reduce((map, issue) => map.set(issue.type, (map.get(issue.type) || 0) + 1), new Map());
@@ -153,4 +176,60 @@ function reportPayload(audit) { return { generatedAt: new Date().toISOString(), 
 function reportMarkdown(audit) { const payload = reportPayload(audit); return ['# AI Content QA Report', '', `- Generated: ${payload.generatedAt}`, `- Sample: ${payload.sample.title} (${payload.sample.id})`, `- Decision: ${payload.gate.passed ? 'PASS' : 'HOLD'}`, `- Score: ${payload.gate.score}`, '', '| Metric | Value |', '| --- | ---: |', `| Citation coverage | ${pct(payload.metrics.citationCoverage)} |`, `| Average support | ${pct(payload.metrics.averageSupport)} |`, `| High issues | ${payload.metrics.highCount} |`, `| Total issues | ${payload.metrics.issueCount} |`, '', '## Claims', '', ...payload.claims.map((claim, index) => `${index + 1}. ${claim.claim}  \n   - Citations: ${claim.citations.join(', ') || 'none'}  \n   - Support: ${pct(claim.support)}  \n   - Issues: ${claim.issues.map(issue => issue.message).join(' / ') || 'none'}`)].join('\n'); }
 function downloadFile(filename, content, type) { const blob = new Blob([content], { type: `${type};charset=utf-8` }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(link.href); showToast(`${filename} 已导出。`); }
 
-document.addEventListener('DOMContentLoaded', () => { refreshIcons(); window.addEventListener('load', refreshIcons, { once: true }); initDashboard(); initReview(); initSources(); initReport(); });
+async function boot() {
+  refreshIcons(); window.addEventListener('load', refreshIcons, { once: true });
+  const heading = document.querySelector('.page-heading'); if (!heading) return;
+  const bar = document.createElement('section'); bar.className = 'data-bar';
+  bar.innerHTML = '<label>数据源<select id="dataMode" aria-label="数据源"><option value="sample">演示样本</option><option value="import">本地导入</option><option value="server" disabled>SQLite 工作区</option></select></label><span id="dataStatus" role="status">连接中…</span><label class="button import-button" for="sampleFile"><i data-lucide="upload"></i>导入内容<input id="sampleFile" class="sr-only" type="file" accept=".json,application/json"></label><button id="refreshData" class="icon-button" type="button" title="刷新数据" aria-label="刷新数据源"><i data-lucide="refresh-cw"></i></button><p id="importError" role="alert" hidden></p>';
+  heading.after(bar);
+  const modeSelect = document.getElementById('dataMode'), status = document.getElementById('dataStatus'), errorBox = document.getElementById('importError');
+  const read = (key, fallback) => { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } };
+  const write = (key, value) => { try { localStorage.setItem(key, value); } catch { throw Error('浏览器存储不可用。'); } };
+  let serverAvailable = false;
+  if (['127.0.0.1', 'localhost'].includes(location.hostname)) {
+    try { const response = await fetch('/health', { signal: AbortSignal.timeout(2500) }); serverAvailable = response.ok && (await response.json()).service === 'content-qa-workbench'; } catch { /* static mode remains available */ }
+  }
+  modeSelect.querySelector('[value="server"]').disabled = !serverAvailable;
+  let mode = read('content-qa.mode.v1', serverAvailable ? 'server' : 'sample');
+  if (mode === 'server' && !serverAvailable) { errorBox.hidden = false; errorBox.textContent = '工作区服务不可用，未加载演示数据。'; modeSelect.querySelector('[value="server"]').disabled = false; }
+  if (!['sample', 'import', 'server'].includes(mode)) mode = 'sample'; modeSelect.value = mode;
+  modeSelect.addEventListener('change', () => { write('content-qa.mode.v1', modeSelect.value); location.reload(); });
+  document.getElementById('refreshData').addEventListener('click', () => location.reload());
+  document.getElementById('sampleFile').addEventListener('change', async event => {
+    const file = event.target.files[0]; if (!file) return;
+    try {
+      if (file.size > 4_000_000) throw Error('文件超过 4 MB。');
+      const incoming = validateSamples(JSON.parse(await file.text()));
+      if (mode === 'server') {
+        if (!serverAvailable) throw Error('工作区服务不可用。');
+        const response = await fetch('/api/samples', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ samples: incoming }) });
+        if (!response.ok) throw Error(response.status === 409 ? '内容 ID 冲突，原数据已保留。' : `导入失败 (HTTP ${response.status})`);
+      } else {
+        const previous = JSON.parse(read('content-qa.samples.v1', '[]')), merged = new Map(previous.map(sample => [sample.id, sample]));
+        for (const sample of incoming) { if (merged.has(sample.id) && JSON.stringify(merged.get(sample.id)) !== JSON.stringify(sample)) throw Error('内容 ID 冲突，原数据已保留。'); merged.set(sample.id, sample); }
+        write('content-qa.samples.v1', JSON.stringify(validateSamples([...merged.values()], Infinity))); write('content-qa.mode.v1', 'import');
+      }
+      location.reload();
+    } catch (error) { errorBox.hidden = false; errorBox.textContent = error.message; event.target.value = ''; }
+  });
+  try {
+    if (mode === 'server') {
+      if (!serverAvailable) throw Error('工作区服务不可用。');
+      const response = await fetch('/api/samples', { signal: AbortSignal.timeout(5000) }); if (!response.ok) throw Error('读取工作区失败。');
+      SAMPLES = validateSamples(await response.json(), Infinity, true);
+    } else if (mode === 'import') SAMPLES = validateSamples(JSON.parse(read('content-qa.samples.v1', '[]')), Infinity);
+    else SAMPLES = SAMPLES.map(sample => ({ ...sample, source: 'sample' }));
+    rebuildDataset();
+    const sourceLabel = mode === 'server' ? 'SQLite 工作区' : mode === 'import' ? '本地导入' : '演示样本';
+    status.textContent = SAMPLES.length ? `${SAMPLES.length} 份内容 · ${ALL_CLAIMS.length} 条声明 · ${sourceLabel}` : `暂无内容记录 · ${sourceLabel}`;
+    document.querySelectorAll('.runtime-state').forEach(el => el.textContent = mode === 'server' ? 'SQLITE WORKSPACE' : mode === 'import' ? 'LOCAL IMPORT' : 'RULESET ACTIVE');
+    if (!SAMPLES.length) throw Error('暂无内容记录。');
+    initDashboard(); initReview(); initSources(); initReport();
+  } catch (error) {
+    status.textContent = error.message;
+    document.querySelectorAll('.page-shell > section:not(.data-bar):not(.page-heading)').forEach(el => el.hidden = true);
+  }
+  refreshIcons();
+}
+
+document.addEventListener('DOMContentLoaded', boot);
