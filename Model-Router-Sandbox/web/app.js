@@ -437,6 +437,20 @@
       quality_adjustment: Number(qualityInput.value) / 100,
       result: experiment
     }));
+    $("savePolicy").addEventListener("click", async () => {
+      if (!(globalThis.location.protocol === "http:" || globalThis.location.protocol === "https:") || !["127.0.0.1", "localhost"].includes(globalThis.location.hostname)) {
+        showToast("请在本地 FastAPI 服务中保存实验");
+        return;
+      }
+      try {
+        const response = await fetch("/api/experiments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task_id: taskSelect.value, weights, budget_multiplier: Number(budgetInput.value) / 100, quality_adjustment: Number(qualityInput.value) / 100 }) });
+        if (!response.ok) throw Error(`保存失败 (HTTP ${response.status})`);
+        const saved = await response.json();
+        showToast(`实验已保存：${saved.experiment_id}`);
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
     resetValues();
   }
 

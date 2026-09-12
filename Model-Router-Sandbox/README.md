@@ -2,7 +2,7 @@
 
 Model Router Sandbox 是一个可解释的多模型策略路由工作台。项目先用隐私、上下文、预算和最低质量四类硬约束过滤模型，再依据任务风险等级，对质量、安全、延迟、成本与上下文余量进行加权排序。
 
-前端提供完整的四页操作界面，Python 侧同时提供可复用路由模块、CLI 和 FastAPI 接口。所有演示数据均在仓库内，不需要 API Key。
+前端提供完整的四页操作界面，Python 侧同时提供可复用路由模块、CLI 和 FastAPI 接口。策略实验可通过 API 保存到 SQLite，保留权重、预算、质量门槛、候选模型和拒绝原因。所有演示数据均在仓库内，不需要 API Key。
 
 ## 在线体验
 
@@ -99,7 +99,7 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-服务默认运行在 `http://127.0.0.1:8060`：
+推荐在项目目录运行 `start.ps1`；服务默认运行在 `http://127.0.0.1:8060`：
 
 | 接口 | 说明 |
 | --- | --- |
@@ -108,6 +108,8 @@ python app.py
 | `GET /api/tasks` | 任务画像列表 |
 | `GET /api/routes` | 批量路由结果 |
 | `GET /api/routes/{task_id}` | 单任务路由结果 |
+| `POST /api/experiments` | 计算并保存一次策略实验 |
+| `GET /api/experiments` | 查看 SQLite 实验历史 |
 
 ## 项目结构
 
@@ -116,13 +118,18 @@ Model-Router-Sandbox/
 |-- README.md
 |-- backend/
 |   |-- app.py
+|   |-- contracts.py
 |   |-- model_router.py
+|   |-- store.py
+|   |-- test_model_router.py
 |   `-- requirements.txt
 |-- data/
 |   |-- models.json
 |   `-- tasks.json
 |-- scripts/
 |   `-- route_tasks.py
+|-- start.ps1
+|-- requirements.lock
 `-- web/
     |-- index.html
     |-- decision.html
@@ -137,9 +144,11 @@ Model-Router-Sandbox/
 - `data/models.json`：模型能力、隐私、上下文、价格、延迟和安全画像。
 - `data/tasks.json`：任务类型、风险、Token、预算、隐私和质量要求。
 - `backend/model_router.py`：Python 路由规则的基准实现。
+- `backend/contracts.py`：模型、任务和策略实验参数的严格输入契约。
+- `backend/store.py`：SQLite 实验历史存储。
 - `web/app.js`：与 Python 规则一致的浏览器路由引擎及四页交互。
 
-在 HTTP 和 GitHub Pages 环境中，前端优先读取 `data/*.json`；直接打开文件或离线时使用内置数据快照。
+在 HTTP 和 GitHub Pages 环境中，前端优先读取 `data/*.json`；直接打开文件或离线时使用内置数据快照。保存实验需要本地 FastAPI 服务，GitHub Pages 只提供静态路由演示。
 
 ## License
 

@@ -1,0 +1,5 @@
+.router/
+.venv/
+__pycache__/
+*.pyc
+test-results/

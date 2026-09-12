@@ -32,6 +32,12 @@ def estimate_cost(model: dict[str, Any], task: dict[str, Any]) -> float:
     return round(input_cost + output_cost, 6)
 
 
+def default_weights(task: dict[str, Any]) -> dict[str, float]:
+    if RISK_RANK[task["risk_level"]] >= 3:
+        return {"quality": 0.42, "safety": 0.28, "latency": 0.1, "cost": 0.1, "context": 0.1}
+    return {"quality": 0.4, "safety": 0.18, "latency": 0.18, "cost": 0.17, "context": 0.07}
+
+
 def passes_hard_constraints(model: dict[str, Any], task: dict[str, Any]) -> tuple[bool, list[str]]:
     reasons = []
     required_privacy = "private" if task["privacy"] == "restricted" else task["privacy"]
@@ -46,7 +52,7 @@ def passes_hard_constraints(model: dict[str, Any], task: dict[str, Any]) -> tupl
     return not reasons, reasons
 
 
-def score_model(model: dict[str, Any], task: dict[str, Any]) -> dict[str, Any]:
+def score_model(model: dict[str, Any], task: dict[str, Any], weights: dict[str, float] | None = None) -> dict[str, Any]:
     quality_score = model["quality"].get(task["task_type"], 0)
     cost = estimate_cost(model, task)
     latency_score = min(task["latency_budget_ms"] / max(model["latency_ms_p95"], 1), 1.0)
@@ -54,10 +60,7 @@ def score_model(model: dict[str, Any], task: dict[str, Any]) -> dict[str, Any]:
     context_score = min(model["context_window"] / max(task["context_tokens"], 1), 4.0) / 4.0
     safety_score = model["safety_score"]
 
-    if RISK_RANK[task["risk_level"]] >= 3:
-        weights = {"quality": 0.42, "safety": 0.28, "latency": 0.1, "cost": 0.1, "context": 0.1}
-    else:
-        weights = {"quality": 0.4, "safety": 0.18, "latency": 0.18, "cost": 0.17, "context": 0.07}
+    weights = weights or default_weights(task)
 
     total = (
         quality_score * weights["quality"]
@@ -106,27 +109,28 @@ def build_reasons(
     return reasons
 
 
-def route_task(task: dict[str, Any]) -> dict[str, Any]:
+def route_task(task: dict[str, Any], models: list[dict[str, Any]] | None = None, weights: dict[str, float] | None = None) -> dict[str, Any]:
     accepted = []
     rejected = []
-    for model in load_models():
+    for model in load_models() if models is None else models:
         passed, reasons = passes_hard_constraints(model, task)
         if passed:
-            accepted.append(score_model(model, task))
+            accepted.append(score_model(model, task, weights))
         else:
             rejected.append({"model_id": model["id"], "model_name": model["name"], "reasons": reasons})
 
     accepted.sort(key=lambda item: item["score"], reverse=True)
     return {
         "task": task,
+        "weights": weights or default_weights(task),
         "recommended": accepted[0] if accepted else None,
         "candidates": accepted,
         "rejected": rejected,
     }
 
 
-def route_all() -> dict[str, Any]:
-    routes = [route_task(task) for task in load_tasks()]
+def route_all(models: list[dict[str, Any]] | None = None, tasks: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    routes = [route_task(task, models=models) for task in (load_tasks() if tasks is None else tasks)]
     return {
         "route_count": len(routes),
         "routes": routes,
