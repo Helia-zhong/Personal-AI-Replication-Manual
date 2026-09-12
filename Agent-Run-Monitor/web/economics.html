@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Agent Run Monitor 成本性能">
   <title>成本性能 | Agent Run Monitor</title>
-  <link rel="stylesheet" href="styles.css?v=4.0.0">
+  <link rel="stylesheet" href="styles.css?v=5.0.0">
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
-  <script src="app.js?v=4.0.0" defer></script>
+  <script src="trace-data.js?v=5.0.0" defer></script>
+  <script src="app.js?v=5.0.0" defer></script>
 </head>
 <body data-page="economics">
   <header class="app-header">
@@ -19,7 +20,7 @@
         <a href="incidents.html"><i data-lucide="shield-alert"></i><span>异常中心</span></a>
         <a class="active" href="economics.html" aria-current="page"><i data-lucide="chart-no-axes-combined"></i><span>成本性能</span></a>
       </nav>
-      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE LIVE</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE DATA</span><a class="icon-button dark" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual/tree/main/Agent-Run-Monitor#readme" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
     </div>
   </header>
 
@@ -33,7 +34,7 @@
     </section>
 
     <section class="metric-grid metric-grid-four" aria-label="成本指标">
-      <article class="metric-accent"><span>总成本</span><strong id="economicsTotalCost">--</strong><small>3 RUNS</small></article>
+      <article class="metric-accent"><span>总成本</span><strong id="economicsTotalCost">--</strong><small>RUNS</small></article>
       <article><span>平均单步成本</span><strong id="averageStepCost">--</strong><small>PER STEP</small></article>
       <article><span>每千 Token</span><strong id="costPerKToken">--</strong><small>BLENDED RATE</small></article>
       <article class="metric-danger"><span>超预算运行</span><strong id="overBudgetMetric">--</strong><small id="overBudgetMeta">COST OR LATENCY</small></article>

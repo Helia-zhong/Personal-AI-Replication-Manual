@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Agent Run Monitor 运行总览">
   <title>运行总览 | Agent Run Monitor</title>
-  <link rel="stylesheet" href="styles.css?v=4.0.0">
+  <link rel="stylesheet" href="styles.css?v=5.0.0">
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
-  <script src="app.js?v=4.0.0" defer></script>
+  <script src="trace-data.js?v=5.0.0" defer></script>
+  <script src="app.js?v=5.0.0" defer></script>
 </head>
 <body data-page="overview">
   <header class="app-header">
@@ -19,13 +20,13 @@
         <a href="incidents.html"><i data-lucide="shield-alert"></i><span>异常中心</span></a>
         <a href="economics.html"><i data-lucide="chart-no-axes-combined"></i><span>成本性能</span></a>
       </nav>
-      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE LIVE</span><a class="icon-button dark" href="../README.md" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
+      <div class="header-meta"><span class="runtime-state"><i></i> SAMPLE DATA</span><a class="icon-button dark" href="https://github.com/Helia-zhong/Personal-AI-Replication-Manual/tree/main/Agent-Run-Monitor#readme" title="查看项目文档" aria-label="查看项目文档"><i data-lucide="file-text"></i></a></div>
     </div>
   </header>
 
   <main class="page-shell">
     <section class="page-heading">
-      <div><p class="eyebrow">OPERATIONS OVERVIEW</p><h1>运行总览</h1><p>2026-07-29 至 07-30 · 三条工作流轨迹</p></div>
+      <div><p class="eyebrow">OPERATIONS OVERVIEW</p><h1>运行总览</h1><p>运行、耗时与异常</p></div>
       <div class="heading-actions">
         <label class="select-control"><span>状态</span><select id="overviewStatus" aria-label="运行状态"><option value="all">全部运行</option><option value="healthy">正常</option><option value="attention">需关注</option></select></label>
         <button class="icon-button" id="refreshOverview" type="button" title="刷新数据" aria-label="刷新数据"><i data-lucide="refresh-cw"></i></button>
@@ -34,7 +35,7 @@
 
     <section class="metric-grid metric-grid-five" aria-label="运行指标">
       <article class="metric-accent"><span>追踪运行</span><strong id="runCountMetric">--</strong><small>RUNS</small></article>
-      <article><span>健康运行</span><strong id="healthyMetric">--</strong><small>无高危异常</small></article>
+      <article><span>健康运行</span><strong id="healthyMetric">--</strong><small>无失败运行或高危异常</small></article>
       <article><span>平均耗时</span><strong id="averageLatencyMetric">--</strong><small>END TO END</small></article>
       <article><span>总成本</span><strong id="totalCostMetric">--</strong><small>ESTIMATED USD</small></article>
       <article class="metric-danger"><span>开放异常</span><strong id="incidentMetric">--</strong><small>DIAGNOSTICS</small></article>

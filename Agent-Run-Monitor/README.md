@@ -1,113 +1,141 @@
 # Agent Run Monitor
 
-Agent Run Monitor 是一个多页面 AI Agent 运行可观测控制台，用统一轨迹检查工作流状态、步骤耗时、工具调用、Token、成本、重试与失败节点。
+Agent Run Monitor 将 Python 工作流的步骤记录转成可检查的运行时间线、异常定位和成本预算报告。它支持实际采集、JSON 导入、SQLite 持久化和四个联动页面。
 
-项目同时提供可部署到 GitHub Pages 的浏览器控制台、Python CLI 和 FastAPI 接口。浏览器端镜像 Python 后端的汇总与异常检测口径，使用三条确定性样本轨迹，不需要 API Key。
+[在线演示](https://helia-zhong.github.io/Personal-AI-Replication-Manual/Agent-Run-Monitor/web/index.html) · [验证记录](docs/validation.md)
 
-## 在线入口
+## 运行方式
 
-<https://helia-zhong.github.io/Personal-AI-Replication-Manual/Agent-Run-Monitor/web/index.html>
-
-## 页面结构
-
-| 页面 | 入口 | 主要内容 |
+| 模式 | 数据来源 | 保存位置 |
 | --- | --- | --- |
-| 运行总览 | `web/index.html` | 跨运行健康度、耗时成本图、运行记录、观测信号和工具调用 |
-| Trace 详情 | `web/trace.html` | 单次运行 Waterfall、步骤检查器、资源分布与 Trace 属性 |
-| 异常中心 | `web/incidents.html` | 失败、重试、耗时和成本异常筛选、诊断与修复优先级 |
-| 成本性能 | `web/economics.html` | 成本/延迟预算、工具经济性、预算门禁和优化空间 |
+| 演示样本 | 3 条固定轨迹、14 个步骤 | 项目文件 |
+| 本地导入 | 用户选择的 Trace JSON | 当前浏览器 localStorage |
+| SQLite 工作区 | FastAPI 接收的 Trace JSON | 本地 .monitor/runs.sqlite3 |
 
-## 核心能力
+GitHub Pages 支持演示和浏览器导入。本地 FastAPI 同时提供页面和接口，工作区初始为空；接口不可用时显示错误，不会用样本冒充真实运行。数据源选择在四页间保留。
 
-- 内置 3 条工作流、14 个 Agent 步骤和 10 类工具/推理调用。
-- 计算端到端耗时、Token、估算成本、步骤成功率、重试数与瓶颈步骤。
-- 使用与 Python 后端相同的规则识别步骤失败、高重试、耗时瓶颈与成本异常。
-- 提供跨运行健康度、单次 Trace Waterfall 和步骤级资源检查器。
-- 支持按严重级别筛选异常，并关联到原始运行与具体步骤。
-- 支持动态调整成本与延迟预算，标记超预算运行。
-- 汇总工具调用次数、平均耗时、Token、成本占比与风险信号。
-- 使用 `localStorage` 保存最近查看的运行。
-- 支持 Trace JSON 与异常 Markdown 报告导出。
+## 本地启动
 
-## 快速运行
+推荐 Python 3.12；Windows 在项目目录运行：
 
-### 浏览器控制台
+```powershell
+.\start.ps1
+# 端口占用时
+.\start.ps1 -Port 8041
+```
 
-直接打开 `web/index.html`，或者在项目目录启动静态服务器：
+启动后访问 http://127.0.0.1:8040/ 。脚本创建独立虚拟环境并安装锁定依赖。
+
+其他系统：
 
 ```bash
-python -m http.server 8000
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.lock
+python -m uvicorn backend.app:app --host 127.0.0.1 --port 8040
 ```
 
-然后访问：
+仅查看演示可直接打开 `web/index.html`，或使用静态服务器；文件模式下存储行为取决于浏览器。
+
+## 采集实际工作流
+
+随附脚本调用同一仓库里的 RAG BM25 引擎，完成读取语料、建立索引、并发查询和引用检查。耗时来自 `perf_counter`，不调用 LLM、不估算 Token 或账单。
+
+```powershell
+.venv\Scripts\python.exe scripts/capture_rag.py --output .monitor/captured.json
+.venv\Scripts\python.exe scripts/capture_rag.py --inject-failure --output .monitor/failure.json
+```
+
+第二条命令注入明确标记的受控异常，用来检查失败诊断链路，不代表模型自身失败。在页面的 SQLite 工作区选择“导入 Trace”，或者通过接口导入：
+
+```powershell
+$trace = Get-Content -Raw .monitor/captured.json
+Invoke-RestMethod http://127.0.0.1:8040/api/runs -Method Post -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($trace))
+```
+
+自己的 Python 程序可以复用 `backend/recorder.py`：
+
+```python
+from recorder import Recorder  # backend/ on PYTHONPATH
+
+recorder = Recorder("document_agent", "Check source references")
+with recorder.step("Search", agent="retriever", tool="local_search") as span:
+    results = search_documents(question)  # Your existing application function
+    span["notes"] = f"Retrieved {len(results)} references"
+    # Only fill tokens_in, tokens_out and cost_usd when actually recorded.
+recorder.export("trace.json")
+```
+
+SDK 不吞掉业务异常；失败步骤会被记录并重新抛出。异常备注默认只保留异常类型，调用方负责脱敏自定义备注。所有步骤结束后再导出。当前 SDK 面向同步 Python 代码及线程池，尚未实现异步 Span 和 OpenTelemetry 协议适配。
+
+## Trace 数据契约
+
+完整字段见 `backend/contracts.py`；示例见 `data/sample_runs.json`。HTTP POST 使用 `{"runs": [...]}`，浏览器和 CLI 同时接受运行数组。
+
+- run_id / step.id：ASCII 字母、数字、点、下划线或连字符，最多 100 字符；步骤 ID 在单次运行内唯一。
+- started_at：含时区的 ISO 时间；只接收终态运行，步骤状态为 success / failed。
+- duration_ms：非负有限数值；start_ms 为相对运行开始的偏移。全步骤提供偏移或全部省略。
+- Token / cost_usd：未记录使用 null；已知为零可以填 0，两者不会混为一谈。
+- 单批 1–100 条运行，每条 1–200 个步骤，导入文件最多 2 MB。
+- 规范化后的同 ID 同内容重复导入返回 duplicates；同 ID 不同内容返回 409，整个批次回滚，原记录不变。
+- source 为导入方声明的 sample / measured / imported，属于元数据，不是来源真实性认证。
+
+## 页面与指标
+
+| 页面 | 可检查内容 |
+| --- | --- |
+| 运行总览 | 数据源、运行筛选、健康度、P95、工具调用、告警 |
+| Trace 详情 | 按实际 start_ms 绘制 Waterfall、失败步骤跳转、资源和 JSON 导出 |
+| 异常中心 | 严重级别、稳定的运行和步骤 ID、具体异常记录、修复建议 |
+| 成本性能 | 已记录成本、Token 完整性、预算门禁和独立假设情景 |
+
+端到端耗时为 `max(start_ms + duration_ms)`，包括首步前和步骤间的空隙；步骤工作量为所有 duration_ms 之和。无偏移的旧样本按顺序累加。并行步骤不再被当作串行端到端耗时。P95 使用 nearest-rank 法，小样本下通常接近最大值。
+
+异常规则保持原有基线：步骤失败为高危、重试 >= 2 为中危、步骤耗时超过中位数两倍为中危、单步成本 >= $0.015 为低危。存在失败运行或高危异常时健康状态强制 REVIEW。
+
+成本和 Token 汇总仅累加已记录部分，API 同时返回 cost_complete / tokens_complete。页面在缺失数据时标记“未记录”，成本未知且延迟未超限时预算为 UNKNOWN。优化情景是独立假设，不可相加，也不是实测节省金额。
+
+## API 和 CLI
 
 ```text
-http://127.0.0.1:8000/web/index.html
+GET  /health
+POST /api/runs
+GET  /api/runs
+GET  /api/summary
+GET  /api/runs/{run_id}/summary
+GET  /docs
 ```
-
-### 命令行分析
 
 ```bash
 python scripts/analyze_runs.py
+python scripts/analyze_runs.py --input .monitor/captured.json --output .monitor/analysis.json
 python scripts/analyze_runs.py --run-id run-2026-07-research-002
+python -m unittest discover -s backend -p 'test_*.py' -v
+node --test tests/data.test.cjs
 ```
 
-### FastAPI 接口
+CLI 的 python 与 Node 测试使用同一虚拟环境；也可设置 MONITOR_PYTHON 指向该解释器。MONITOR_DB 可覆盖数据库路径。
 
-```bash
-cd backend
-python -m pip install -r requirements.txt
-python app.py
+## 架构
+
+```mermaid
+flowchart LR
+  P[Python workflow] --> S[Recorder]
+  S --> J[Trace JSON]
+  J --> V[Pydantic validation]
+  V --> D[(SQLite transaction)]
+  D --> A[Summary and incidents API]
+  J --> B[Browser import]
+  D --> U[Four-page console]
+  B --> U
 ```
 
-接口地址：
+## 验证与限制
 
-```text
-GET http://127.0.0.1:8040/health
-GET http://127.0.0.1:8040/api/runs
-GET http://127.0.0.1:8040/api/summary
-GET http://127.0.0.1:8040/api/runs/run-2026-07-qa-001/summary
-```
+GitHub Actions 执行后端测试、前后端指标一致性测试，并实际采集一条带受控失败的 RAG 轨迹，保存 Trace 和分析报告作为 CI artifact。[验证细节](docs/validation.md)。
 
-## 异常规则
-
-| 信号 | 级别 | 触发条件 |
-| --- | --- | --- |
-| 步骤失败 | 高危 | `status != success` |
-| 重试次数偏高 | 中危 | `retries >= 2` |
-| 耗时瓶颈 | 中危 | 步骤耗时大于当前运行步骤耗时中位数的 2 倍 |
-| 成本偏高 | 低危 | 单步骤成本不低于 `$0.015` |
-
-当前样本共识别 7 个异常信号：1 个高危、5 个中危和 1 个低危。
-
-## 项目结构
-
-```text
-Agent-Run-Monitor/
-├── README.md
-├── backend/
-│   ├── app.py               FastAPI 服务
-│   ├── run_monitor.py       汇总、异常检测与建议逻辑
-│   └── requirements.txt
-├── data/
-│   └── sample_runs.json     Agent 运行轨迹样本
-├── scripts/
-│   └── analyze_runs.py      CLI 入口
-└── web/
-    ├── index.html           运行总览
-    ├── trace.html           Trace 详情
-    ├── incidents.html       异常中心
-    ├── economics.html       成本性能
-    ├── styles.css           共享视觉与响应式样式
-    └── app.js               数据、指标、交互、图表与导出逻辑
-```
-
-## 运行边界
-
-- 当前轨迹、成本与时间均为项目内置演示数据。
-- 前端为保证 GitHub Pages 和本地文件模式可用，内置了与 `sample_runs.json` 相同的样本数据。
-- 生产接入可将数据源替换为 OpenTelemetry、LangGraph 节点事件或现有日志平台，同时复用指标与异常模型。
+本版本是单机终态 Trace 观测工具，默认只绑定 127.0.0.1；尚无身份认证、租户隔离、流式事件和 OTLP 接口。浏览器导入保存在当前浏览器，SQLite 只在本机保存，两种模式的数据不会自动互相复制。使用团队部署前需补齐认证、留存策略和访问控制。
 
 ## License
 
-本项目随仓库使用 MIT License，详见根目录 [LICENSE](../LICENSE)。
+[MIT License](../LICENSE)。
