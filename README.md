@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | AgentFlow Visualizer | 多页面资料处理与人工审核、FastAPI / SQLite、可选 Ollama 模型与评测面板 | [打开](AgentFlow-Visualizer/index.html) |
 | PromptOps Evaluation Lab | Prompt 版本回归评估、发布门禁、Ollama 运行与 SQLite 评估历史 | [打开](PromptOps-Evaluation-Lab/web/index.html) |
-| RAG Evaluation Studio | 多页面 RAG 实验工作台，覆盖可解释 BM25、Recall@K / Precision@K / MRR、失败诊断与可选 Ollama 生成 | [打开](RAG-Evaluation-Studio/web/index.html) |
+| RAG Evaluation Studio | 多页面 RAG 实验工作台，覆盖可解释 BM25、Recall@K / Precision@K / MRR、失败诊断、SQLite 运行历史与可选 Ollama 生成 | [打开](RAG-Evaluation-Studio/web/index.html) |
 | Agent Run Monitor | Python Trace 采集、SQLite 持久化、并行时间线、异常定位与成本预算控制台 | [打开](Agent-Run-Monitor/web/index.html) |
 | AI Content QA Workbench | 内容 JSON 导入、声明证据核验、SQLite 审核工作区、发布门禁与报告导出 | [打开](AI-Content-QA-Workbench/web/index.html) |
 | Model Router Sandbox | 模型画像与任务契约、硬约束诊断、可解释评分、SQLite 策略实验历史 | [打开](Model-Router-Sandbox/web/index.html) |

@@ -2,7 +2,7 @@
 
 RAG Evaluation Studio 是一个面向检索增强生成系统的可复现实验工作台。它把知识库、BM25 召回、引用答案、固定评测集、失败诊断和可选本地 LLM 生成放进同一条可观察链路，便于定位“没有召回”“召回了无关来源”与“答案遗漏要点”等问题。
 
-项目提供 GitHub Pages 浏览器控制台、Python CLI 和 FastAPI 服务。浏览器端使用本地确定性基线，打开即用；Python 端可以切换到 Ollama，记录模型、延迟、Token 和错误。
+项目提供 GitHub Pages 浏览器控制台、Python CLI 和 FastAPI 服务。浏览器端使用本地确定性基线，打开即用；Python 端可以切换到 Ollama，记录模型、延迟、Token 和错误。FastAPI 还会把评测运行和查询运行持久化到本地 SQLite，便于复盘质量变化。
 
 ## 在线入口
 
@@ -81,6 +81,9 @@ GET http://127.0.0.1:8030/api/cases
 GET http://127.0.0.1:8030/api/evaluate?top_k=3
 GET http://127.0.0.1:8030/api/evaluate?top_k=3&provider=ollama&model=llama3.2:3b
 GET http://127.0.0.1:8030/api/query?q=如何避免编造&top_k=2&min_score=0.5
+POST http://127.0.0.1:8030/api/runs/evaluate?top_k=3
+POST http://127.0.0.1:8030/api/runs/query?q=如何避免编造&top_k=2
+GET http://127.0.0.1:8030/api/runs
 ```
 
 ## 评分与诊断
@@ -104,6 +107,8 @@ RAG-Evaluation-Studio/
 ├── backend/
 │   ├── app.py                 FastAPI 服务
 │   ├── rag_studio.py         BM25、评测和 Ollama 适配
+│   ├── store.py               SQLite 运行记录存储
+│   ├── test_api.py            API 与静态入口测试
 │   ├── test_rag_studio.py    后端回归测试
 │   └── requirements.txt
 ├── data/

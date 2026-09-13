@@ -18,6 +18,7 @@ const EVAL_CASES = [
 const STOPWORDS = new Set(['的', '了', '和', '与', '或', '应', '在', '是', '为', '及', '把', '对', '如何', '什么']);
 const CATEGORY_LABELS = { retrieval: '检索工程', generation: '答案生成', governance: '权限治理', evaluation: '质量评估' };
 const STORAGE_KEYS = { history: 'rag-studio.query-history.v3', evalTopK: 'rag-studio.eval-top-k.v3' };
+const API_ORIGIN = /^https?:$/.test(window.location.protocol) && ['127.0.0.1', 'localhost'].includes(window.location.hostname) ? 'http://127.0.0.1:8030' : '';
 
 function storageGet(key, fallback) {
   try {
@@ -29,6 +30,13 @@ function storageGet(key, fallback) {
 function storageSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); return true; }
   catch { return false; }
+}
+
+async function apiRequest(path, options = {}) {
+  if (!API_ORIGIN) return null;
+  const response = await fetch(`${API_ORIGIN}${path}`, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
+  if (!response.ok) throw new Error(`本地服务返回 HTTP ${response.status}`);
+  return response.json();
 }
 
 function escapeHtml(value) {
@@ -362,7 +370,23 @@ function initEvaluation() {
 
   document.getElementById('evaluationRows').addEventListener('click', event => { const row=event.target.closest('[data-case]'); if(!row)return; activeCaseId=row.dataset.case; renderRows(currentResult); renderDetail(currentResult); });
   topKSelect.addEventListener('change', render);
-  document.getElementById('runEvaluation').addEventListener('click', event => { const button=event.currentTarget; button.disabled=true; button.innerHTML='<i data-lucide="loader-circle"></i><span>评测中...</span>'; refreshIcons(); setTimeout(()=>{ render(); button.disabled=false; button.innerHTML='<i data-lucide="play"></i><span>运行评测</span>'; refreshIcons(); showToast(`TOP-${currentResult.topK} 评测完成，综合得分 ${score100(currentResult.aggregate.overall)}。`); },650); });
+  document.getElementById('runEvaluation').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.innerHTML = '<i data-lucide="loader-circle"></i><span>评测中...</span>';
+    refreshIcons();
+    await new Promise(resolve => setTimeout(resolve, 650));
+    render();
+    try {
+      const saved = await apiRequest(`/api/runs/evaluate?top_k=${currentResult.topK}`, { method: 'POST' });
+      showToast(saved ? `TOP-${currentResult.topK} 评测完成，已保存运行记录。` : `TOP-${currentResult.topK} 评测完成。`);
+    } catch {
+      showToast('评测完成，本地服务未连接，记录保存在当前浏览器。');
+    }
+    button.disabled = false;
+    button.innerHTML = '<i data-lucide="play"></i><span>运行评测</span>';
+    refreshIcons();
+  });
   window.addEventListener('resize',()=>drawCaseChart(currentResult)); render();
 }
 

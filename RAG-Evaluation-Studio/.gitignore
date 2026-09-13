@@ -1,0 +1,5 @@
+.ragstudio/
+__pycache__/
+*.py[cod]
+.venv/
+reports/*.tmp
