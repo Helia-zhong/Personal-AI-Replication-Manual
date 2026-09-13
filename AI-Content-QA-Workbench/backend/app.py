@@ -58,6 +58,14 @@ def ingest(batch: SampleBatch) -> dict:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
+@app.get("/api/samples/{sample_id}")
+def sample_detail(sample_id: str) -> dict:
+    try:
+        return store.get(sample_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/api/audit")
 def audit() -> dict:
     return audit_all(store.all())

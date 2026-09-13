@@ -68,6 +68,7 @@ python app.py
 GET http://127.0.0.1:8050/health
 GET  http://127.0.0.1:8050/health
 GET  http://127.0.0.1:8050/api/samples
+GET  http://127.0.0.1:8050/api/samples/content-002
 POST http://127.0.0.1:8050/api/samples
 GET  http://127.0.0.1:8050/api/audit
 GET  http://127.0.0.1:8050/api/audit/content-002

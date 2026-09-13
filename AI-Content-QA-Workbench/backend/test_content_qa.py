@@ -92,6 +92,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/samples", json=payload).json()["inserted"], 1)
         self.assertEqual(self.client.post("/api/samples", json=payload).json()["duplicates"], 1)
         self.assertEqual(self.client.get("/api/samples").json()[0]["id"], "content-test")
+        self.assertEqual(self.client.get("/api/samples/content-test").json()["id"], "content-test")
+        self.assertEqual(self.client.get("/api/samples/missing").status_code, 404)
         self.assertEqual(self.client.get("/api/audit").json()["aggregate"]["sample_count"], 1)
         self.assertEqual(self.client.get("/api/audit/content-test").status_code, 200)
         payload["samples"][0]["title"] = "conflict"
