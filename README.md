@@ -24,7 +24,7 @@
 | Agent Run Monitor | Python Trace 采集、SQLite 持久化、并行时间线、异常定位与成本预算控制台 | [打开](Agent-Run-Monitor/web/index.html) |
 | AI Content QA Workbench | 内容 JSON 导入、声明证据核验、SQLite 审核工作区、发布门禁与报告导出 | [打开](AI-Content-QA-Workbench/web/index.html) |
 | Model Router Sandbox | 模型画像与任务契约、硬约束诊断、可解释评分、SQLite 策略实验历史 | [打开](Model-Router-Sandbox/web/index.html) |
-| AI Dataset Curation Lab | 四页数据质量工作台、样本复核、完整性扫描与可调发布门禁 | [打开](AI-Dataset-Curation-Lab/web/index.html) |
+| AI Dataset Curation Lab | AI 数据质量工作台、样本处置持久化、重复泄漏审计与发布门禁运行记录 | [打开](AI-Dataset-Curation-Lab/web/index.html) |
 | AI Connect Four Arena | 四页四子棋 AI 对弈、可编辑搜索实验室、挑战基准与本地战绩档案 | [打开](AI-Connect-Four-Arena/web/index.html) |
 | AI Video Insight Lab | 四页多模态视频质检、镜头审阅、覆盖诊断与可编辑高光决策 | [打开](AI-Video-Insight-Lab/web/index.html) |
 | AutoVision Copilot | VLM 场景理解与风险问答演示 | [打开](AutoVision-Copilot/index.html) |

@@ -2,7 +2,7 @@
 
 AI Dataset Curation Lab 是一个面向 AI 训练集与评测集的数据质量工作台。项目对问答、抽取、摘要和分类样本执行来源、格式、长度、支持度、重复与跨 split 泄漏审计，并用发布门禁把质量信号转化为可执行的数据版本决策。
 
-前端提供完整的四页操作界面，Python 侧同时提供审计模块、CLI 和 FastAPI 接口。所有演示数据均在仓库内，不需要 API Key。
+前端提供完整的四页操作界面，Python 侧同时提供审计模块、CLI 和 FastAPI 接口。审计运行、样本处置和发布门禁结果可持久化到 SQLite，形成可回溯的质量流水线。所有演示数据均在仓库内，不需要 API Key。
 
 ## 在线体验
 
@@ -117,6 +117,8 @@ python -m pip install -r requirements.txt
 python app.py
 ~~~
 
+也可以在项目目录执行 `start.ps1`，它会同时提供前端页面、数据文件和 API 服务。
+
 服务默认运行在 `http://127.0.0.1:8070`：
 
 | 接口 | 说明 |
@@ -125,6 +127,12 @@ python app.py
 | `GET /api/datasets` | 原始数据集列表 |
 | `GET /api/audit` | 全量审计结果 |
 | `GET /api/audit/{dataset_id}` | 单数据集审计结果 |
+| `POST /api/audit/runs` | 执行并保存一次审计运行 |
+| `GET /api/audit/runs` | 查看审计运行历史 |
+| `POST /api/reviews` | 保存一条样本处置记录 |
+| `GET /api/reviews` | 查看样本处置历史 |
+| `POST /api/release/runs` | 计算并保存一次发布门禁 |
+| `GET /api/release/runs` | 查看发布门禁历史 |
 
 ## 项目结构
 
@@ -133,12 +141,16 @@ AI-Dataset-Curation-Lab/
 |-- README.md
 |-- backend/
 |   |-- app.py
+|   |-- contracts.py
 |   |-- dataset_lab.py
+|   |-- store.py
+|   |-- test_dataset_lab.py
 |   `-- requirements.txt
 |-- data/
 |   `-- datasets.json
 |-- scripts/
 |   `-- audit_dataset.py
+|-- start.ps1
 `-- web/
     |-- index.html
     |-- samples.html
@@ -152,9 +164,11 @@ AI-Dataset-Curation-Lab/
 
 - `data/datasets.json`：4 类任务的原始样本、标签、来源和 Split。
 - `backend/dataset_lab.py`：Python 审计规则的基准实现。
+- `backend/contracts.py`：审计运行、样本处置和发布门禁的输入契约。
+- `backend/store.py`：SQLite 运行记录与人工复核历史存储。
 - `web/app.js`：与 Python 规则一致的浏览器审计引擎及四页交互。
 
-在 HTTP 和 GitHub Pages 环境中，前端优先读取 `data/datasets.json`；直接打开文件或离线时使用内置数据快照。
+在 HTTP 和 GitHub Pages 环境中，前端优先读取 `data/datasets.json`；直接打开文件或离线时使用内置数据快照。静态部署保留完整浏览能力，本地 FastAPI 服务额外启用 SQLite 持久化。
 
 ## License
 

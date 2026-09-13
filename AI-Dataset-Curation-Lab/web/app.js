@@ -300,6 +300,14 @@
   const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" })[char]);
   const datasetOptions = (selected) => DATASETS.map((dataset) => `<option value="${dataset.id}"${dataset.id === selected ? " selected" : ""}>${escapeHtml(dataset.title)} · ${dataset.task_type}</option>`).join("");
   const scoreClass = (score) => score >= 0.65 ? "" : (score >= 0.45 ? "warn" : "bad");
+  const API_ORIGIN = /^https?:$/.test(globalThis.location.protocol) && ["127.0.0.1", "localhost"].includes(globalThis.location.hostname) ? "http://127.0.0.1:8070" : "";
+
+  async function apiRequest(path, options = {}) {
+    if (!API_ORIGIN) return null;
+    const response = await fetch(`${API_ORIGIN}${path}`, { headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
+    if (!response.ok) throw Error(`本地服务返回 HTTP ${response.status}`);
+    return response.json();
+  }
 
   function refreshIcons() {
     if (globalThis.lucide) globalThis.lucide.createIcons({ attrs: { "stroke-width": 1.8 } });
@@ -400,7 +408,11 @@
     refreshIcons();
     const redraw = () => drawQualityChart($("qualityChart"), datasets);
     redraw(); globalThis.addEventListener("resize", redraw);
-    $("refreshAudit").addEventListener("click", () => { redraw(); showToast("数据审计已刷新"); });
+    $("refreshAudit").addEventListener("click", async () => {
+      redraw();
+      try { const saved = await apiRequest("/api/audit/runs", { method: "POST", body: JSON.stringify({}) }); showToast(saved ? `审计已记录：${saved.run_id}` : "数据审计已刷新"); }
+      catch (error) { showToast(`审计完成，记录失败：${error.message}`); }
+    });
   }
 
   const curationState = new Map();
@@ -429,10 +441,19 @@
       $("sampleDetailStatus").textContent = sample.issues.length ? `${sample.issues.length} ISSUES` : "CLEAN";
       $("sampleDetailStatus").className = `status-chip ${sample.issues.some((issue) => issue.severity === "high") ? "danger" : (sample.issues.length ? "warning" : "")}`;
       $("sampleDetail").innerHTML = `<div class="sample-detail"><div class="curation-control"><span>人工处置状态</span><div class="segmented" role="group" aria-label="人工处置状态"><button type="button" data-curation="keep" class="${status === "keep" ? "active" : ""}">保留</button><button type="button" data-curation="repair" class="${status === "repair" ? "active" : ""}">待修</button><button type="button" data-curation="drop" class="${status === "drop" ? "active" : ""}">剔除</button></div></div><div class="sample-metric-grid"><div><span>OVERALL</span><strong>${sample.metrics.overall.toFixed(4)}</strong></div><div><span>FORMAT</span><strong>${sample.metrics.format_fit.toFixed(2)}</strong></div><div><span>LENGTH</span><strong>${sample.metrics.length_fit.toFixed(2)}</strong></div><div><span>SUPPORT</span><strong>${sample.metrics.support_score.toFixed(4)}</strong></div></div><section class="content-block"><header><span>INSTRUCTION</span><span>${sample.split} · ${sample.label}</span></header><p>${escapeHtml(sample.instruction)}</p></section><section class="content-block"><header><span>RESPONSE</span><span>${sample.response.length} chars</span></header><p>${escapeHtml(sample.response)}</p></section><section class="content-block"><header><span>SOURCE</span><span>${sample.source ? "AVAILABLE" : "MISSING"}</span></header><p>${sample.source ? escapeHtml(sample.source) : "未提供可追溯来源"}</p></section><section class="content-block"><header><span>AUDIT ISSUES</span><span>${sample.issues.length}</span></header><div class="issue-tags">${sample.issues.length ? sample.issues.map((issue) => `<span class="issue-tag ${issue.severity}">${ISSUE_LABELS[issue.type] || issue.type}</span>`).join("") : '<span class="tag">无问题</span>'}</div></section><section class="content-block"><header><span>INTEGRITY</span><span>${sample.duplicate || sample.leakage ? "AFFECTED" : "CLEAR"}</span></header><p>${sample.duplicate ? "属于重复样本组。" : "无重复命中。"} ${sample.leakage ? "存在跨 split 泄漏。" : "无跨 split 泄漏。"}</p></section><section class="content-block"><header><span>TAGS</span><span>${sample.tags.length}</span></header><div class="tag-list">${sample.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div></section></div>`;
+      const curationControl = document.querySelector(".curation-control");
+      curationControl?.insertAdjacentHTML("beforeend", '<button type="button" class="button button-secondary curation-save" id="saveCuration"><i data-lucide="database"></i><span>保存处置</span></button>');
       document.querySelectorAll("[data-curation]").forEach((button) => button.addEventListener("click", () => {
         curationState.set(sample.id, button.dataset.curation);
         renderDetail(); renderList(); showToast("处置状态已更新");
       }));
+      $("saveCuration")?.addEventListener("click", async () => {
+        try {
+          const saved = await apiRequest("/api/reviews", { method: "POST", body: JSON.stringify({ dataset_id: currentDataset.id, sample_id: sample.id, status: stateFor(sample) }) });
+          showToast(saved ? `处置已保存：${saved.review_id}` : "请在本地服务中保存处置");
+        } catch (error) { showToast(`保存失败：${error.message}`); }
+      });
+      refreshIcons();
     };
 
     const filteredSamples = () => {
@@ -459,8 +480,15 @@
       if (currentSample) globalThis.history.replaceState(null, "", `?dataset=${currentDataset.id}&sample=${currentSample.id}`);
     }
 
-    const renderDataset = () => {
+    const restoreReviews = async () => {
+      try {
+        const reviews = await apiRequest(`/api/reviews?dataset_id=${encodeURIComponent(currentDataset.id)}`);
+        if (reviews) reviews.slice().reverse().forEach((review) => curationState.set(review.sample_id, review.status));
+      } catch { /* Local persistence is optional for static Pages demos. */ }
+    };
+    const renderDataset = async () => {
       currentDataset = auditDataset(DATASETS.find((dataset) => dataset.id === datasetSelect.value));
+      await restoreReviews();
       const metrics = currentDataset.metrics;
       const flagged = currentDataset.samples.filter((sample) => sample.issues.length).length;
       $("sampleSubtitle").textContent = `${currentDataset.task_type} · ${currentDataset.description}`;
@@ -602,7 +630,13 @@
     };
     select.addEventListener("change", loadDataset);
     $("resetGate").addEventListener("click", () => { Object.assign(policy, defaults); renderPolicyControls(); renderResult(); showToast("门禁已恢复默认值"); });
-    $("exportRelease").addEventListener("click", () => downloadJson(`${audit.id}-release-gate.json`, { dataset_id: audit.id, generated_at: new Date().toISOString(), decision: result.ready ? "ready" : "blocked", policy: result.policy, checks: result.checks, metrics: audit.metrics, recommendations: audit.recommendations }));
+    $("exportRelease").addEventListener("click", async () => {
+      downloadJson(`${audit.id}-release-gate.json`, { dataset_id: audit.id, generated_at: new Date().toISOString(), decision: result.ready ? "ready" : "blocked", policy: result.policy, checks: result.checks, metrics: audit.metrics, recommendations: audit.recommendations });
+      try {
+        const saved = await apiRequest("/api/release/runs", { method: "POST", body: JSON.stringify({ dataset_id: audit.id, quality_threshold: policy.quality / 100, source_threshold: policy.source / 100, duplicate_threshold: policy.duplicate / 100, leakage_threshold: policy.leakage }) });
+        if (saved) showToast(`门禁记录已保存：${saved.run_id}`);
+      } catch (error) { showToast(`报告已导出，记录失败：${error.message}`); }
+    });
     loadDataset();
   }
 

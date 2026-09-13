@@ -1,0 +1,4 @@
+.curation/
+__pycache__/
+*.py[cod]
+.venv/
