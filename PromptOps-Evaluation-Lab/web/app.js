@@ -135,6 +135,15 @@ function storageSet(key, value) {
   }
 }
 
+const API_ORIGIN = /^https?:$/.test(window.location.protocol) && ['127.0.0.1', 'localhost'].includes(window.location.hostname) ? 'http://127.0.0.1:8020' : '';
+
+async function apiRequest(path, options = {}) {
+  if (!API_ORIGIN) return null;
+  const response = await fetch(`${API_ORIGIN}${path}`, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
+  if (!response.ok) throw new Error(`本地服务返回 HTTP ${response.status}`);
+  return response.json();
+}
+
 function getVersions() {
   const stored = storageGet(STORAGE_KEYS.versions, null);
   return Array.isArray(stored) && stored.length ? stored : clone(DEFAULT_VERSIONS);
@@ -525,7 +534,7 @@ function initDashboard() {
     button.disabled = true;
     button.innerHTML = '<i data-lucide="loader-circle"></i><span>评估中...</span>';
     refreshIcons();
-    setTimeout(() => {
+    setTimeout(async () => {
       const version = selectedVersion();
       const run = makeRunRecord(version);
       const runs = getRuns();
@@ -534,7 +543,12 @@ function initDashboard() {
       button.disabled = false;
       button.innerHTML = '<i data-lucide="play"></i><span>运行评估</span>';
       render();
-      showToast(`${version.name} 评估完成，综合得分 ${score100(run.score)}。`);
+      try {
+        const saved = await apiRequest(`/api/runs/evaluate/${encodeURIComponent(version.id)}`, { method: 'POST' });
+        showToast(saved ? `${version.name} 评估完成，已记录 ${saved.run_id}。` : `${version.name} 评估完成，综合得分 ${score100(run.score)}。`);
+      } catch {
+        showToast(`${version.name} 评估完成，综合得分 ${score100(run.score)}。`);
+      }
     }, 720);
   });
   document.getElementById('clearRuns').addEventListener('click', () => {

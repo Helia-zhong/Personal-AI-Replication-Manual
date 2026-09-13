@@ -1,6 +1,6 @@
 # PromptOps Evaluation Lab
 
-PromptOps Evaluation Lab 是一个多页面 Prompt 评估与回归控制台，用固定测试集比较 Prompt 版本，检查关键字覆盖、输出格式、安全拒答与禁止内容，并在发布前给出质量门禁结论。
+PromptOps Evaluation Lab 是一个多页面 Prompt 评估与回归控制台，用固定测试集比较 Prompt 版本，检查关键字覆盖、输出格式、安全拒答与禁止内容，并在发布前给出质量门禁结论。评估运行可保存到 SQLite，保留版本、模型提供方、综合得分和逐用例结果。
 
 项目包含可直接部署到 GitHub Pages 的浏览器工作台，以及共享同一测试数据和评分维度的 Python CLI 与 FastAPI 接口。浏览器演示使用确定性本地模拟器，不需要 API Key，也不会发送 Prompt 内容。
 
@@ -27,6 +27,7 @@ PromptOps Evaluation Lab 是一个多页面 Prompt 评估与回归控制台，�
 - 通过综合得分、格式、安全与低分用例数量形成发布门禁。
 - 使用浏览器 `localStorage` 保存 Prompt 草稿、启用范围和最近 40 次评估记录。
 - 支持版本复制、实时静态检查、逐用例回归对比及报告下载。
+- 支持将单版本评估和全量版本对比写入 SQLite，并通过 API 查询运行历史。
 - 提供 CLI 与 FastAPI 入口，便于替换本地模拟器并接入真实模型服务。
 
 ## 快速运行
@@ -72,6 +73,9 @@ GET http://127.0.0.1:8020/api/evaluate/guarded
 GET http://127.0.0.1:8020/api/compare
 # 真实模型请求示例
 GET http://127.0.0.1:8020/api/compare?provider=ollama&model=qwen2.5:1.5b
+POST http://127.0.0.1:8020/api/runs/evaluate/guarded
+POST http://127.0.0.1:8020/api/runs/compare
+GET http://127.0.0.1:8020/api/runs
 ```
 
 ## 评分规则
@@ -101,6 +105,7 @@ PromptOps-Evaluation-Lab/
 ├── backend/
 │   ├── app.py                 FastAPI 服务
 │   ├── promptops.py           模拟响应、Ollama 适配与评分引擎
+│   ├── store.py               SQLite 评估运行存储
 │   └── requirements.txt
 ├── data/
 │   ├── eval_cases.json        固定回归测试集
