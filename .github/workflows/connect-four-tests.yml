@@ -1,0 +1,25 @@
+name: Connect Four checks
+
+on:
+  push:
+    paths:
+      - "AI-Connect-Four-Arena/**"
+      - ".github/workflows/connect-four-tests.yml"
+  pull_request:
+    paths:
+      - "AI-Connect-Four-Arena/**"
+      - ".github/workflows/connect-four-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: AI-Connect-Four-Arena
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -r backend/requirements.txt
+      - run: cd backend && python -m unittest discover -s tests -v

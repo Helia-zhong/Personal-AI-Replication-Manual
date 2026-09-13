@@ -18,7 +18,7 @@
     return {
       board, baseBoard: E.cloneBoard(board), turn: E.HUMAN, depth: 4, history: [],
       autoAi: true, challengeId: "", completed: false, completionId: "", lastMove: null,
-      lastPrediction: null, stats: { games: 0, humanWins: 0, aiWins: 0, draws: 0 }, matches: [],
+      lastPrediction: null, stats: { games: 0, humanWins: 0, aiWins: 0, draws: 0 }, matches: [], syncedMatchIds: [],
     };
   }
 
@@ -38,6 +38,7 @@
         baseBoard: isBoard(stored.baseBoard) ? E.cloneBoard(stored.baseBoard) : E.newBoard(),
         history: Array.isArray(stored.history) ? stored.history : [],
         matches: Array.isArray(stored.matches) ? stored.matches.slice(0, 30) : [],
+        syncedMatchIds: Array.isArray(stored.syncedMatchIds) ? stored.syncedMatchIds.slice(0, 30) : [],
         depth: [2, 3, 4, 5].includes(Number(stored.depth)) ? Number(stored.depth) : 4,
       };
     } catch (error) {
@@ -49,6 +50,15 @@
 
   function saveState() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) { /* Storage can be disabled. */ }
+  }
+
+  const API_ORIGIN = /^https?:$/.test(globalThis.location.protocol) && ["127.0.0.1", "localhost"].includes(globalThis.location.hostname) ? "http://127.0.0.1:8080" : "";
+
+  async function apiRequest(path, options = {}) {
+    if (!API_ORIGIN) return null;
+    const response = await fetch(`${API_ORIGIN}${path}`, { headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
+    if (!response.ok) throw Error(`本地服务返回 HTTP ${response.status}`);
+    return response.json();
   }
 
   async function loadSamples() {
@@ -155,6 +165,17 @@
     return terminal.winner === E.HUMAN ? "human" : terminal.winner === E.AI ? "ai" : "draw";
   }
 
+  async function syncMatch(match) {
+    try {
+      const saved = await apiRequest("/api/matches", { method: "POST", body: JSON.stringify({ match_id: match.id, result: match.result, moves: match.moves, depth: match.depth, challenge_id: match.challengeId || "", ended_at: match.endedAt, board_key: match.boardKey }) });
+      if (saved && !state.syncedMatchIds.includes(match.id)) {
+        state.syncedMatchIds.unshift(match.id);
+        state.syncedMatchIds = state.syncedMatchIds.slice(0, 30);
+        saveState();
+      }
+    } catch (error) { console.warn("Match sync unavailable", error); }
+  }
+
   function finalizeIfNeeded() {
     const terminal = E.terminalState(state.board);
     if (!terminal.terminal || state.completed) return terminal;
@@ -166,12 +187,14 @@
     if (result === "human") state.stats.humanWins += 1;
     if (result === "ai") state.stats.aiWins += 1;
     if (result === "draw") state.stats.draws += 1;
-    state.matches.unshift({
+    const match = {
       id, result, moves: state.history.length, depth: state.depth, challengeId: state.challengeId,
       endedAt: new Date().toISOString(), boardKey: E.serializeBoard(state.board),
-    });
+    };
+    state.matches.unshift(match);
     state.matches = state.matches.slice(0, 30);
     saveState();
+    syncMatch(match);
     return terminal;
   }
 
@@ -435,6 +458,12 @@
     });
     byId("benchmarkScore").textContent = `${passed}/${samples.length}`;
     byId("benchmarkTitle").textContent = passed === samples.length ? "全部预期落点一致" : `${samples.length - passed} 个局面出现深度偏差`;
+    byId("runBenchmark")?.addEventListener("click", async () => {
+      try {
+        const saved = await apiRequest("/api/benchmarks?depth=4", { method: "POST" });
+        showToast(saved ? `基准已记录：${saved.run_id}` : "请在本地服务中记录基准");
+      } catch (error) { showToast(`基准运行失败：${error.message}`); }
+    });
     refreshIcons();
   }
 

@@ -1,6 +1,6 @@
 # AI Connect Four Arena
 
-一个完整的四子棋 AI 对弈与搜索实验项目。浏览器端提供四个共享状态的操作页面，Python 端提供同规则的分析引擎、CLI、FastAPI 接口和单元测试。
+一个完整的四子棋 AI 对弈与搜索实验项目。浏览器端提供四个共享状态的操作页面，Python 端提供同规则的分析引擎、CLI、FastAPI 接口、可重复 benchmark 和 SQLite 对局记录。
 
 ## 在线入口
 
@@ -96,6 +96,10 @@ python app.py
 | `GET /api/move?board=42_digits&column=3` | 执行指定落子 |
 | `GET /api/report/{sample_id}?depth=4` | 导出样例报告 |
 | `GET /api/export?board=42_digits&depth=4&title=Custom` | 导出自定义报告 |
+| `POST /api/benchmarks?depth=4` | 运行并保存挑战基准 |
+| `GET /api/benchmarks` | 查看基准运行历史 |
+| `POST /api/matches` | 保存一局完成的对局 |
+| `GET /api/matches` | 查看服务端对局记录 |
 
 ## Board Key
 
@@ -114,8 +118,10 @@ AI-Connect-Four-Arena/
 |-- README.md
 |-- backend/
 |   |-- app.py
+|   |-- contracts.py
 |   |-- connect_four.py
 |   |-- requirements.txt
+|   |-- store.py
 |   `-- tests/
 |       `-- test_connect_four.py
 |-- data/
@@ -139,7 +145,7 @@ cd AI-Connect-Four-Arena/backend
 python -m unittest discover -s tests -v
 ```
 
-JavaScript 基准可直接通过 Node 加载 `web/engine.js`，并与 `data/sample_positions.json` 的四组局面进行断言。
+JavaScript 基准可直接通过 Node 加载 `web/engine.js`，并与 `data/sample_positions.json` 的四组局面进行断言。`backend/store.py` 保存 benchmark 运行和完成对局，支持结果追溯。
 
 ## License
 
