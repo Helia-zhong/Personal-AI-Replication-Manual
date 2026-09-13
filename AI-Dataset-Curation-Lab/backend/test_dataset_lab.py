@@ -33,6 +33,10 @@ class ApiTests(unittest.TestCase):
 
     def test_health_and_audit_run(self) -> None:
         self.assertEqual(self.client.get("/health").status_code, 200)
+        detail = self.client.get("/api/datasets/support-qa-playbook")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()["id"], "support-qa-playbook")
+        self.assertEqual(self.client.get("/api/datasets/missing").status_code, 404)
         run = self.client.post("/api/audit/runs", json={})
         self.assertEqual(run.status_code, 200)
         self.assertTrue(run.json()["run_id"].startswith("audit-"))

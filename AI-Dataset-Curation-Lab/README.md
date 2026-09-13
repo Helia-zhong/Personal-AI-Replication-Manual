@@ -125,6 +125,7 @@ python app.py
 | --- | --- |
 | `GET /health` | 健康检查 |
 | `GET /api/datasets` | 原始数据集列表 |
+| `GET /api/datasets/{dataset_id}` | 单数据集详情 |
 | `GET /api/audit` | 全量审计结果 |
 | `GET /api/audit/{dataset_id}` | 单数据集审计结果 |
 | `POST /api/audit/runs` | 执行并保存一次审计运行 |

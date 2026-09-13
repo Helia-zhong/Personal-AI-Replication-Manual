@@ -38,6 +38,14 @@ def datasets() -> list[dict]:
     return load_datasets()
 
 
+@app.get("/api/datasets/{dataset_id}")
+def dataset_detail(dataset_id: str) -> dict:
+    try:
+        return get_dataset(dataset_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/api/audit")
 def audit() -> dict:
     return audit_all()
