@@ -85,6 +85,14 @@ def experiments() -> list[dict]:
     return store.all()
 
 
+@app.get("/api/experiments/{experiment_id}")
+def experiment_detail(experiment_id: str) -> dict:
+    try:
+        return store.get(experiment_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/")
 def home():
     return RedirectResponse("/web/index.html")

@@ -32,3 +32,10 @@ class ExperimentStore:
         with self.connect() as db:
             rows = db.execute("SELECT body FROM experiments ORDER BY created_at DESC, id DESC").fetchall()
         return [json.loads(row[0]) for row in rows]
+
+    def get(self, experiment_id: str) -> dict:
+        with self.connect() as db:
+            row = db.execute("SELECT body FROM experiments WHERE id=?", (experiment_id,)).fetchone()
+        if row is None:
+            raise KeyError(experiment_id)
+        return json.loads(row[0])

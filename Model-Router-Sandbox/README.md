@@ -110,6 +110,7 @@ python app.py
 | `GET /api/routes/{task_id}` | 单任务路由结果 |
 | `POST /api/experiments` | 计算并保存一次策略实验 |
 | `GET /api/experiments` | 查看 SQLite 实验历史 |
+| `GET /api/experiments/{experiment_id}` | 获取单次实验详情 |
 
 ## 项目结构
 

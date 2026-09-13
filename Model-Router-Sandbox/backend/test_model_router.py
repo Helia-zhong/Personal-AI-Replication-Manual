@@ -79,7 +79,10 @@ class ApiTests(unittest.TestCase):
         response = self.client.post("/api/experiments", json=payload)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["result"]["recommended"]["model_id"], "local-private")
+        experiment_id = response.json()["experiment_id"]
         self.assertEqual(len(self.client.get("/api/experiments").json()), 1)
+        self.assertEqual(self.client.get(f"/api/experiments/{experiment_id}").json()["experiment_id"], experiment_id)
+        self.assertEqual(self.client.get("/api/experiments/missing").status_code, 404)
         self.assertEqual(self.client.get("/data/models.json").status_code, 200)
         self.assertEqual(self.client.get("/web/index.html").status_code, 200)
 
