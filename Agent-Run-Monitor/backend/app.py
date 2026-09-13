@@ -58,6 +58,14 @@ def ingest(batch: RunBatch) -> dict:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
+@app.get("/api/runs/{run_id}")
+def run_detail(run_id: str) -> dict:
+    try:
+        return store.get(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/api/summary")
 def summary() -> dict:
     return summarize_all(store.all())

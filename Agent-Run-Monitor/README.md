@@ -101,6 +101,7 @@ SDK 不吞掉业务异常；失败步骤会被记录并重新抛出。异常备�
 GET  /health
 POST /api/runs
 GET  /api/runs
+GET  /api/runs/{run_id}
 GET  /api/summary
 GET  /api/runs/{run_id}/summary
 GET  /docs

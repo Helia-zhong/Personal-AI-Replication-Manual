@@ -132,7 +132,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/runs", json=payload).json()["inserted"], 1)
         self.assertEqual(self.client.post("/api/runs", json=payload).json()["duplicates"], 1)
         self.assertEqual(len(self.client.get("/api/runs").json()), 1)
+        self.assertEqual(self.client.get("/api/runs/test-run").json()["run_id"], "test-run")
         self.assertEqual(self.client.get("/api/runs/test-run/summary").status_code, 200)
+        self.assertEqual(self.client.get("/api/runs/missing").status_code, 404)
         self.assertEqual(self.client.get("/api/runs/missing/summary").status_code, 404)
         payload["runs"][0]["objective"] = "different"
         self.assertEqual(self.client.post("/api/runs", json=payload).status_code, 409)
