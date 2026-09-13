@@ -42,6 +42,15 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (error) { /* Local storage may be disabled. */ }
   }
 
+  const API_ORIGIN = /^https?:$/.test(globalThis.location.protocol) && ["127.0.0.1", "localhost"].includes(globalThis.location.hostname) ? "http://127.0.0.1:8090" : "";
+
+  async function apiRequest(path, options = {}) {
+    if (!API_ORIGIN) return null;
+    const response = await fetch(`${API_ORIGIN}${path}`, { headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
+    if (!response.ok) throw Error(`本地服务返回 HTTP ${response.status}`);
+    return response.json();
+  }
+
   async function loadClips() {
     try {
       const response = await fetch("../data/clips.json", { cache: "no-store" });
@@ -212,6 +221,12 @@
 
     byId("riskFilter").addEventListener("change", (event) => { risk = event.target.value; render(); });
     byId("sortClips").addEventListener("change", (event) => { sort = event.target.value; render(); });
+    byId("recordInspection")?.addEventListener("click", async () => {
+      try {
+        const saved = await apiRequest("/api/inspection-runs", { method: "POST" });
+        showToast(saved ? `检查已记录：${saved.run_id}` : "请在本地服务中记录检查");
+      } catch (error) { showToast(`记录失败：${error.message}`); }
+    });
     globalThis.addEventListener("resize", () => drawPortfolioChart(E.inspectAll(allClips()).clips));
     render();
   }
@@ -394,6 +409,12 @@
     if (requested && baseClips.some((clip) => clip.id === requested)) setClip(requested, false);
     select.value = state.clipId;
 
+    try {
+      const saved = await apiRequest(`/api/highlights?clip_id=${encodeURIComponent(state.clipId)}`);
+      const latest = saved?.[0]?.payload?.highlights;
+      if (Array.isArray(latest)) { state.highlightEdits[state.clipId] = latest; saveState(); }
+    } catch { /* Persistent editing is optional for static Pages demos. */ }
+
     function current() { return clipById(state.clipId); }
     function persistHighlights(highlights) {
       state.highlightEdits[state.clipId] = highlights.map((item) => ({ start: Number(item.start), end: Number(item.end), reason: String(item.reason || "highlight") }));
@@ -479,7 +500,14 @@
       persistHighlights(highlights); render(); showToast("已添加 6 秒高光窗口");
     });
     byId("resetHighlights").addEventListener("click", () => { delete state.highlightEdits[state.clipId]; saveState(); render(); showToast("已恢复原始高光窗口"); });
-    byId("exportHighlights").addEventListener("click", () => exportClip(current(), "highlight-cut"));
+    byId("exportHighlights").addEventListener("click", async () => {
+      const clip = current();
+      exportClip(clip, "highlight-cut");
+      try {
+        const saved = await apiRequest("/api/highlights", { method: "POST", body: JSON.stringify({ clip_id: clip.id, highlights: clip.highlights }) });
+        if (saved) showToast(`剪辑版本已保存：${saved.edit_id}`);
+      } catch (error) { showToast(`报告已导出，保存失败：${error.message}`); }
+    });
     render();
   }
 

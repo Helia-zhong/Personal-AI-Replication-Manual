@@ -1,6 +1,6 @@
 # AI Video Insight Lab
 
-AI Video Insight Lab 是一个可离线运行的多模态视频质检工作台。项目用结构化场景数据模拟视频理解管线，统一检查字幕、OCR、音频、对象、镜头时长与高光密度，并提供可编辑的剪辑决策和 Markdown 报告导出。
+AI Video Insight Lab 是一个可离线运行的多模态视频质检工作台。项目用结构化场景数据模拟视频理解管线，统一检查字幕、OCR、音频、对象、镜头时长与高光密度，并提供可编辑的剪辑决策、SQLite 版本记录和 Markdown 报告导出。
 
 ## 在线体验
 
@@ -18,7 +18,7 @@ AI Video Insight Lab 是一个可离线运行的多模态视频质检工作台�
 | [覆盖诊断](web/coverage.html) | 按视频或关键词检索多模态覆盖矩阵，直接跳转到缺口发生的时间码 |
 | [高光剪辑](web/highlights.html) | 新增、修改、删除高光窗口，实时重算密度、适配度与整体质量 |
 
-高光编辑、当前样例、播放位置和速度保存在浏览器本地。修改后的高光结果会同步反映到审阅页，并可随时恢复原始数据。
+高光编辑、当前样例、播放位置和速度保存在浏览器本地。运行本地 FastAPI 时，可以把检查运行和高光版本写入 SQLite；修改后的高光结果会同步反映到审阅页，并可随时恢复原始数据。
 
 ## 质量基线
 
@@ -53,13 +53,17 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-默认服务地址为 `http://127.0.0.1:8000`，接口包括：
+默认服务地址为 `http://127.0.0.1:8090`，接口包括：
 
 - `GET /health`
 - `GET /api/clips`
 - `GET /api/report`
 - `GET /api/inspect/{clip_id}`
 - `GET /api/clips/{clip_id}/report`
+- `POST /api/inspection-runs`
+- `GET /api/inspection-runs`
+- `POST /api/highlights`
+- `GET /api/highlights?clip_id=launch-teaser`
 
 ## CLI
 
@@ -75,8 +79,10 @@ python scripts/inspect_clip.py --clip-id webinar-cutdown --format markdown
 AI-Video-Insight-Lab/
 |-- backend/
 |   |-- app.py
+|   |-- contracts.py
 |   |-- video_lab.py
 |   |-- requirements.txt
+|   |-- store.py
 |   `-- tests/
 |-- data/
 |   `-- clips.json
@@ -94,7 +100,7 @@ AI-Video-Insight-Lab/
     `-- styles.css
 ```
 
-`backend/video_lab.py` 与 `web/engine.js` 实现同一套确定性规则，负责覆盖率、镜头节奏、高光密度、问题列表和推荐语计算。前端没有构建步骤，适合直接部署到 GitHub Pages。
+`backend/video_lab.py` 与 `web/engine.js` 实现同一套确定性规则，负责覆盖率、镜头节奏、高光密度、问题列表和推荐语计算。前端没有构建步骤，适合直接部署到 GitHub Pages；`start.ps1` 会同时提供前端、数据和 API 服务。
 
 ## 测试
 
